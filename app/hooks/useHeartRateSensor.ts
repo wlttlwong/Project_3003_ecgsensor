@@ -33,8 +33,7 @@ export function useHeartRateSensor(): HeartRateSensorHook {
   const [isECGStreaming, setIsECGStreaming] = useState<boolean>(false);
   const [pmdControlCharacteristic, setPmdControlCharacteristic] = useState<BluetoothRemoteGATTCharacteristic | null>(null);
   const [pmdDataCharacteristic, setPmdDataCharacteristic] = useState<BluetoothRemoteGATTCharacteristic | null>(null);
-  const [samplingRate, setSamplingRate] = useState<number>(130); // Default to 130Hz
-  const [lastFrameTimestamp, setLastFrameTimestamp] = useState<number | null>(null);
+
 
   const connect = useCallback(async () => {
     try {

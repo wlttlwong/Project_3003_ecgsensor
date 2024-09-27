@@ -12,7 +12,7 @@ interface ECGDataPoint {
 
 interface ECGChartProps {
   ecgData: ECGDataPoint[];
-}
+}      
 
 const ECGChart: React.FC<ECGChartProps> = ({ ecgData }) => {
   const formatTimestamp = (timestamp: number): string => {
@@ -20,6 +20,7 @@ const ECGChart: React.FC<ECGChartProps> = ({ ecgData }) => {
       return new Date(timestamp).toISOString();
     } catch (error) {
       console.error('Invalid timestamp:', timestamp);
+      console.error(error);
       return 'Invalid Date';
     }
   };
