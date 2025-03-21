@@ -25,6 +25,7 @@ interface HeartRateSensorHook {
 }
 
 export function useHeartRateSensor(): HeartRateSensorHook {
+  // State Management Section
   const [device, setDevice] = useState<BluetoothDevice | null>(null);
   const [heartRate, setHeartRate] = useState<number | null>(null);
   const [ecgData, setECGData] = useState<ECGDataPoint[]>([]);
@@ -34,7 +35,7 @@ export function useHeartRateSensor(): HeartRateSensorHook {
   const [pmdControlCharacteristic, setPmdControlCharacteristic] = useState<BluetoothRemoteGATTCharacteristic | null>(null);
   const [pmdDataCharacteristic, setPmdDataCharacteristic] = useState<BluetoothRemoteGATTCharacteristic | null>(null);
 
-
+  // Connection Management
   const connect = useCallback(async () => {
     try {
       if (!navigator.bluetooth) {
@@ -93,6 +94,7 @@ export function useHeartRateSensor(): HeartRateSensorHook {
     setECGData([]);
   }, [device]);
 
+  // ECG Stream Control
   const startECGStream = useCallback(async () => {
     if (!pmdControlCharacteristic || !pmdDataCharacteristic) {
       throw new Error('PMD characteristics not available');
@@ -138,6 +140,11 @@ export function useHeartRateSensor(): HeartRateSensorHook {
     setECGData([]);
   }, [pmdDataCharacteristic]);
 
+  // Remove unused handlers:
+  // - handleHeartRateUpdate
+  // - handleECGData
+
+  // Effects & Cleanup
   useEffect(() => {
     return () => {
       disconnect();
