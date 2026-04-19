@@ -17,6 +17,8 @@ interface HeartRateSensorHook {
   disconnect: () => void;
   startECGStream: () => Promise<void>;
   stopECGStream: () => void;
+  togglePaused: () => void;
+  isPaused: boolean;
   heartRate: number | null;
   ecgData: ECGDataPoint[];
   error: string | null;
@@ -34,6 +36,11 @@ export function useHeartRateSensor(): HeartRateSensorHook {
   const [isECGStreaming, setIsECGStreaming] = useState<boolean>(false);
   const [pmdControlCharacteristic, setPmdControlCharacteristic] = useState<BluetoothRemoteGATTCharacteristic | null>(null);
   const [pmdDataCharacteristic, setPmdDataCharacteristic] = useState<BluetoothRemoteGATTCharacteristic | null>(null);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
+
+  const togglePaused = useCallback(() => {
+    setIsPaused(prev => !prev);
+  }, []);
 
   // Connection Management
   const connect = useCallback(async () => {
@@ -110,16 +117,23 @@ export function useHeartRateSensor(): HeartRateSensorHook {
 
       await pmdDataCharacteristic.startNotifications();
       pmdDataCharacteristic.addEventListener('characteristicvaluechanged', (event) => {
-        const value = (event.target as BluetoothRemoteGATTCharacteristic).value;
+        if (isPaused) return;
+
+        const characteristic = event.target as BluetoothRemoteGATTCharacteristic;
+        const value = characteristic.value;
+
         if (value) {
           const { samples } = parseECGData(value);
           const currentTime = Date.now();
           const sampleInterval = 1000 / 130; // 130 Hz sampling rate
 
-          const newEcgData = samples.map((sample, index) => ({
-            timestamp: currentTime + index * sampleInterval,
-            value: sample
-          }));
+          const newEcgData = samples.map((sample, index) => {
+            const filteredValue = sample;
+            return {
+              timestamp: currentTime + index * sampleInterval,
+              value: filteredValue
+            };
+          });
 
           setECGData(prev => [...prev, ...newEcgData].slice(-1000)); // Keep last 1000 points
         }
@@ -129,7 +143,7 @@ export function useHeartRateSensor(): HeartRateSensorHook {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred while starting ECG stream');
     }
-  }, [pmdControlCharacteristic, pmdDataCharacteristic]);
+  }, [pmdControlCharacteristic, pmdDataCharacteristic, isPaused]);
   
 
   const stopECGStream = useCallback(async () => {
@@ -156,6 +170,8 @@ export function useHeartRateSensor(): HeartRateSensorHook {
     disconnect,
     startECGStream,
     stopECGStream,
+    togglePaused,
+    isPaused,
     heartRate,
     ecgData,
     error,
