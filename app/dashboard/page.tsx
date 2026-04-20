@@ -25,6 +25,72 @@ type CalendarMode = "weekly" | "monthly" | "yearly";
 const WEEKDAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
 const HOUR_MARKERS = [0, 6, 12, 18];
 
+type StressLevel = "low" | "moderate" | "high" | "very_high";
+
+interface StressInfo {
+  level: StressLevel;
+  label: string;
+  emoji: string;
+  color: string;
+  bgColor: string;
+  description: string;
+}
+
+function getStressLevel(hrv: number | null): StressInfo {
+  if (hrv == null) {
+    return {
+      level: "moderate",
+      label: "No Data",
+      emoji: "—",
+      color: "text-slate-600",
+      bgColor: "bg-slate-100",
+      description: "Complete a session to see stress level",
+    };
+  }
+  
+  if (hrv > 60) {
+    return {
+      level: "low",
+      label: "Low Stress",
+      emoji: "😌",
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-50",
+      description: "Excellent recovery. Body is well-adapted. Keep up the good training!",
+    };
+  }
+  
+  if (hrv >= 30) {
+    return {
+      level: "moderate",
+      label: "Moderate Stress",
+      emoji: "🙂",
+      color: "text-amber-600",
+      bgColor: "bg-amber-50",
+      description: "Normal training load. Good for building endurance, but monitor fatigue.",
+    };
+  }
+  
+  if (hrv >= 15) {
+    return {
+      level: "high",
+      label: "High Stress",
+      emoji: "😟",
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+      description: "Elevated stress or fatigue. Consider lighter session or recovery day.",
+    };
+  }
+  
+  return {
+    level: "very_high",
+    label: "Very High Stress",
+    emoji: "😰",
+    color: "text-red-600",
+    bgColor: "bg-red-50",
+    description: "High stress / possible overtraining. Rest and recover before next intense activity.",
+  };
+}
+
 function startOfDay(d: Date): Date {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
@@ -476,145 +542,216 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        {/* Trends Section */}
+        {/* Trends Section + Overview Grid */}
         {sessions.length > 0 && (
-          <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-4">Trends</h2>
-              
-              {/* Time Period Selector */}
-              <div className="flex flex-wrap items-center gap-3 mb-6">
-                {(["weekly", "monthly", "yearly"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setCalendarMode(mode)}
-                    className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${
-                      calendarMode === mode
-                        ? "bg-slate-900 text-white"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
-                  >
-                    {mode[0].toUpperCase() + mode.slice(1)}
-                  </button>
-                ))}
-              </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Trends Section - Left */}
+            <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900 mb-4">Trend</h2>
+                
+                {/* Time Period Selector */}
+                <div className="flex flex-wrap items-center gap-3 mb-6">
+                  {(["weekly", "monthly", "yearly"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setCalendarMode(mode)}
+                      className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${
+                        calendarMode === mode
+                          ? "bg-slate-900 text-white"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      }`}
+                    >
+                      {mode[0].toUpperCase() + mode.slice(1)}
+                    </button>
+                  ))}
+                </div>
 
-              {/* Date Range and Navigation */}
-              <div className="flex items-center justify-between mb-6 gap-4">
-                <p className="text-base font-semibold text-slate-700">{calendarLabel}</p>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => moveCalendar(-1)}
-                    className="h-10 w-10 rounded-full bg-slate-700 hover:bg-slate-800 text-white flex items-center justify-center transition"
-                    aria-label="Previous range"
-                  >
-                    ‹
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => moveCalendar(1)}
-                    className="h-10 w-10 rounded-full bg-slate-700 hover:bg-slate-800 text-white flex items-center justify-center transition"
-                    aria-label="Next range"
-                  >
-                    ›
-                  </button>
+                {/* Date Range and Navigation */}
+                <div className="flex items-center justify-between mb-6 gap-4">
+                  <p className="text-base font-semibold text-slate-700">{calendarLabel}</p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => moveCalendar(-1)}
+                      className="h-10 w-10 rounded-full bg-slate-700 hover:bg-slate-800 text-white flex items-center justify-center transition"
+                      aria-label="Previous range"
+                    >
+                      ‹
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveCalendar(1)}
+                      className="h-10 w-10 rounded-full bg-slate-700 hover:bg-slate-800 text-white flex items-center justify-center transition"
+                      aria-label="Next range"
+                    >
+                      ›
+                    </button>
+                  </div>
+                </div>
+
+                {/* Main HRV Metric */}
+                <div className="mb-6">
+                  <p className="text-5xl font-bold text-slate-900 mb-2">
+                    {hrvMetrics.averageHrv != null
+                      ? `${Math.round(hrvMetrics.averageHrv)} ms`
+                      : "— ms"}
+                  </p>
+                  <p className="text-base text-slate-600">
+                    {calendarMode === "weekly"
+                      ? "Weekly"
+                      : calendarMode === "monthly"
+                      ? "Monthly"
+                      : "Yearly"}{" "}
+                    Average HRV
+                  </p>
+                </div>
+
+                {/* Stress Score Card */}
+                <div className={`rounded-2xl p-6 space-y-6 mb-6 ${
+                  getStressLevel(hrvMetrics.averageHrv).bgColor
+                } border-l-4 ${
+                  hrvMetrics.averageHrv == null
+                    ? "border-l-slate-300"
+                    : hrvMetrics.averageHrv > 60
+                    ? "border-l-emerald-500"
+                    : hrvMetrics.averageHrv >= 30
+                    ? "border-l-amber-500"
+                    : hrvMetrics.averageHrv >= 15
+                    ? "border-l-orange-500"
+                    : "border-l-red-500"
+                }`}>
+                  <div>
+                    <h3 className={`text-lg font-semibold flex items-center gap-2 ${getStressLevel(hrvMetrics.averageHrv).color}`}>
+                      <span>{getStressLevel(hrvMetrics.averageHrv).emoji}</span> {getStressLevel(hrvMetrics.averageHrv).label}
+                    </h3>
+                  </div>
+
+                  <p className="text-sm text-slate-700">
+                    {getStressLevel(hrvMetrics.averageHrv).description}
+                  </p>
+
+                  {/* HRV Range */}
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-300">
+                    <div>
+                      <p className="text-xs font-semibold text-slate-600 mb-2">Max HRV</p>
+                      <p className="text-2xl font-bold text-slate-900">
+                        {hrvMetrics.maxHrv != null ? `${Math.round(hrvMetrics.maxHrv)}` : "—"}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">ms</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-600 mb-2">Min HRV</p>
+                      <p className="text-2xl font-bold text-slate-900">
+                        {hrvMetrics.minHrv != null ? `${Math.round(hrvMetrics.minHrv)}` : "—"}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">ms</p>
+                    </div>
+                  </div>
+
+                  {/* Best and Worst Day */}
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-300">
+                    <div>
+                      <p className="text-xs font-semibold text-slate-600 mb-2">Best Day</p>
+                      <p className="text-lg font-bold text-slate-900">
+                        {bestDay ? new Date(bestDay).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-600 mb-2">Worst Day</p>
+                      <p className="text-lg font-bold text-slate-900">
+                        {worstDay ? new Date(worstDay).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Resting Heart Rate */}
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+                  <h3 className="text-base font-semibold text-slate-900 flex items-center gap-2 mb-4">
+                    <span>❤️</span> Resting Heart Rate
+                  </h3>
+                  <p className="text-3xl font-bold text-slate-900">
+                    {restingHr != null ? `${Math.round(restingHr)} bpm` : "—"}
+                  </p>
+                  <p className="text-sm text-slate-600 mt-2">
+                    Average resting heart rate this {calendarMode}
+                  </p>
                 </div>
               </div>
+            </section>
 
-              {/* Main HRV Metric */}
-              <div className="mb-6">
-                <p className="text-5xl font-bold text-slate-900 mb-2">
-                  {hrvMetrics.averageHrv != null
-                    ? `${Math.round(hrvMetrics.averageHrv)} ms`
-                    : "— ms"}
-                </p>
-                <p className="text-base text-slate-600">
-                  {calendarMode === "weekly"
-                    ? "Weekly"
-                    : calendarMode === "monthly"
-                    ? "Monthly"
-                    : "Yearly"}{" "}
-                  Average HRV
-                </p>
-              </div>
-
-              {/* Stress Score Card */}
-              <div className="rounded-2xl bg-slate-950 text-white p-6 space-y-6 mb-6">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <span>🌟</span> Stress Score
-                </h3>
-                
-                {/* Daily Stress Scores */}
-                <div className="space-y-2">
-                  <div className="grid grid-cols-7 gap-2">
-                    {WEEKDAY_LABELS.map((label, index) => (
-                      <div key={label} className="text-center">
-                        <p className="text-xs text-slate-400 mb-2 font-medium">
-                          {label}
-                        </p>
-                        <div
-                          className={`rounded-lg h-12 w-full flex items-center justify-center font-semibold text-sm ${
-                            index === 0
-                              ? "bg-emerald-500 text-white"
-                              : "bg-slate-800 text-slate-300"
-                          }`}
-                        >
-                          {index === 0 ? "😎" : `${index + 20}`}
-                        </div>
+            {/* Overview Section - Right */}
+            <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm space-y-4">
+              <div className="rounded-2xl bg-slate-950 text-white p-4 sm:p-5">
+                <p className="text-lg font-semibold mb-3">Hourly overview</p>
+                <div className="overflow-x-auto">
+                  <div className="min-w-[560px] space-y-2">
+                    <div className="grid grid-cols-[20px_repeat(24,minmax(0,1fr))] gap-1 text-[10px] text-slate-400">
+                      <span />
+                      {Array.from({ length: 24 }, (_, h) => (
+                        <span key={h} className="text-center">
+                          {HOUR_MARKERS.includes(h) ? String(h).padStart(2, "0") : ""}
+                        </span>
+                      ))}
+                    </div>
+                    {WEEKDAY_LABELS.map((label, row) => (
+                      <div
+                        key={`${label}-${row}`}
+                        className="grid grid-cols-[20px_repeat(24,minmax(0,1fr))] gap-1 items-center"
+                      >
+                        <span className="text-xs text-slate-300 text-center">{label}</span>
+                        {Array.from({ length: 24 }, (_, col) => {
+                          const level = toHeatLevel(
+                            heatmap.buckets[row][col],
+                            heatmap.max
+                          );
+                          const tone =
+                            level === 0
+                              ? "bg-slate-800"
+                              : level === 1
+                              ? "bg-emerald-900"
+                              : level === 2
+                              ? "bg-emerald-700"
+                              : level === 3
+                              ? "bg-emerald-500"
+                              : "bg-sky-400";
+                          return (
+                            <div
+                              key={`${row}-${col}`}
+                              className={`h-2.5 rounded ${tone}`}
+                              title={`${label} ${String(col).padStart(2, "0")}:00`}
+                            />
+                          );
+                        })}
                       </div>
                     ))}
                   </div>
                 </div>
-
-                {/* HRV Range */}
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-700">
-                  <div>
-                    <p className="text-xs text-slate-400 mb-2">Max HRV</p>
-                    <p className="text-2xl font-bold">
-                      {hrvMetrics.maxHrv != null ? `${Math.round(hrvMetrics.maxHrv)} ms` : "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-400 mb-2">Min HRV</p>
-                    <p className="text-2xl font-bold">
-                      {hrvMetrics.minHrv != null ? `${Math.round(hrvMetrics.minHrv)} ms` : "—"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Best and Worst Day */}
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-700">
-                  <div>
-                    <p className="text-xs text-slate-400 mb-2">Best Day</p>
-                    <p className="text-lg font-bold text-emerald-400">
-                      {bestDay ? new Date(bestDay).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-400 mb-2">Worst Day</p>
-                    <p className="text-lg font-bold text-slate-200">
-                      {worstDay ? new Date(worstDay).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Resting Heart Rate */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-                <h3 className="text-base font-semibold text-slate-900 flex items-center gap-2 mb-4">
-                  <span>❤️</span> Resting Heart Rate
-                </h3>
-                <p className="text-3xl font-bold text-slate-900">
-                  {restingHr != null ? `${Math.round(restingHr)} bpm` : "—"}
-                </p>
-                <p className="text-sm text-slate-600 mt-2">
-                  Average resting heart rate this {calendarMode}
+                <p className="mt-3 text-xs text-slate-400">
+                  Heat intensity reflects session load by time slot in the selected range.
                 </p>
               </div>
-            </div>
-          </section>
+
+              {/* Today's insight */}
+              <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-5">
+                <h2 className="text-lg font-semibold text-slate-900 mb-2">
+                  Today&apos;s insight
+                </h2>
+                <p className="text-slate-700 leading-relaxed text-sm">{insightBody}</p>
+                {sessions.length > 0 && hrvInsight.percentChangeVsLastWeek != null && (
+                  <p className="mt-4 text-lg font-semibold text-emerald-700">
+                    {hrvInsight.percentChangeVsLastWeek >= 0 ? "+" : ""}
+                    {Math.round(hrvInsight.percentChangeVsLastWeek * 10) / 10}%
+                    <span className="text-slate-600 text-sm font-normal ml-2">
+                      vs last week (average HRV)
+                    </span>
+                  </p>
+                )}
+              </div>
+            </section>
+          </div>
         )}
 
         <p
@@ -664,113 +801,6 @@ export default function DashboardPage() {
             </div>
           </section>
         )}
-
-        {/* Today's insight */}
-        <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            {(["weekly", "monthly", "yearly"] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setCalendarMode(mode)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  calendarMode === mode
-                    ? "bg-slate-900 text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                {mode[0].toUpperCase() + mode.slice(1)}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center justify-between">
-            <p className="text-slate-700 font-semibold">{calendarLabel}</p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => moveCalendar(-1)}
-                className="h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                aria-label="Previous range"
-              >
-                ←
-              </button>
-              <button
-                type="button"
-                onClick={() => moveCalendar(1)}
-                className="h-9 w-9 rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                aria-label="Next range"
-              >
-                →
-              </button>
-            </div>
-          </div>
-          <div className="rounded-2xl bg-slate-950 text-white p-4 sm:p-5">
-            <p className="text-lg font-semibold mb-3">Hourly overview</p>
-            <div className="overflow-x-auto">
-              <div className="min-w-[560px] space-y-2">
-                <div className="grid grid-cols-[20px_repeat(24,minmax(0,1fr))] gap-1 text-[10px] text-slate-400">
-                  <span />
-                  {Array.from({ length: 24 }, (_, h) => (
-                    <span key={h} className="text-center">
-                      {HOUR_MARKERS.includes(h) ? String(h).padStart(2, "0") : ""}
-                    </span>
-                  ))}
-                </div>
-                {WEEKDAY_LABELS.map((label, row) => (
-                  <div
-                    key={`${label}-${row}`}
-                    className="grid grid-cols-[20px_repeat(24,minmax(0,1fr))] gap-1 items-center"
-                  >
-                    <span className="text-xs text-slate-300 text-center">{label}</span>
-                    {Array.from({ length: 24 }, (_, col) => {
-                      const level = toHeatLevel(
-                        heatmap.buckets[row][col],
-                        heatmap.max
-                      );
-                      const tone =
-                        level === 0
-                          ? "bg-slate-800"
-                          : level === 1
-                          ? "bg-emerald-900"
-                          : level === 2
-                          ? "bg-emerald-700"
-                          : level === 3
-                          ? "bg-emerald-500"
-                          : "bg-sky-400";
-                      return (
-                        <div
-                          key={`${row}-${col}`}
-                          className={`h-2.5 rounded ${tone}`}
-                          title={`${label} ${String(col).padStart(2, "0")}:00`}
-                        />
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <p className="mt-3 text-xs text-slate-400">
-              Heat intensity reflects session load by time slot in the selected range.
-            </p>
-          </div>
-        </section>
-
-        {/* Today's insight */}
-        <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900 mb-2">
-            Today&apos;s insight
-          </h2>
-          <p className="text-slate-700 leading-relaxed">{insightBody}</p>
-          {sessions.length > 0 && hrvInsight.percentChangeVsLastWeek != null && (
-            <p className="mt-4 text-lg font-semibold text-emerald-700">
-              {hrvInsight.percentChangeVsLastWeek >= 0 ? "+" : ""}
-              {Math.round(hrvInsight.percentChangeVsLastWeek * 10) / 10}%
-              <span className="text-slate-600 text-sm font-normal ml-2">
-                vs last week (average HRV)
-              </span>
-            </p>
-          )}
-        </section>
 
         {/* Current week + metrics */}
         <section className="space-y-4">
