@@ -1,4 +1,5 @@
 "use client"
+import Link from "next/link";
 import { useHeartRateSensor } from './hooks/useHeartRateSensor';
 import HeartRateMonitor from './components/HeartRateMonitor';
 import ECGChart from './components/ECGChart';
@@ -11,6 +12,14 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-teal-100 p-8">
+      <div className="max-w-4xl mx-auto mb-6 flex justify-end">
+        <Link
+          href="/dashboard"
+          className="text-blue-700 hover:underline font-medium"
+        >
+          Dashboard →
+        </Link>
+      </div>
       <HeartRateMonitor
         isConnected={isConnected}
         isECGStreaming={isECGStreaming}
