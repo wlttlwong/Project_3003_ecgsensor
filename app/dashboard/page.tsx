@@ -324,6 +324,51 @@ export default function DashboardPage() {
     return hrvInsight.message;
   }, [sessions.length, hrvInsight.message]);
 
+  const hrvMetrics = useMemo(() => {
+    const stats = computePeriodStats(calendarSessions);
+    const hrvValues = calendarSessions
+      .map((s) => s.avgHrvMs)
+      .filter((v): v is number => v != null);
+    const maxHrv = hrvValues.length > 0 ? Math.max(...hrvValues) : null;
+    const minHrv = hrvValues.length > 0 ? Math.min(...hrvValues) : null;
+    return {
+      averageHrv: stats.avgHrvMs,
+      maxHrv,
+      minHrv,
+    };
+  }, [calendarSessions]);
+
+  const bestDay = useMemo(() => {
+    if (calendarSessions.length === 0) return null;
+    let best = calendarSessions[0];
+    for (const s of calendarSessions) {
+      if ((s.avgHrvMs ?? 0) > (best.avgHrvMs ?? 0)) {
+        best = s;
+      }
+    }
+    return best.startedAt;
+  }, [calendarSessions]);
+
+  const worstDay = useMemo(() => {
+    if (calendarSessions.length === 0) return null;
+    let worst = calendarSessions[0];
+    for (const s of calendarSessions) {
+      if ((s.avgHrvMs ?? 0) < (worst.avgHrvMs ?? 0)) {
+        worst = s;
+      }
+    }
+    return worst.startedAt;
+  }, [calendarSessions]);
+
+  const restingHr = useMemo(() => {
+    if (calendarSessions.length === 0) return null;
+    const avgHrs = calendarSessions
+      .map((s) => s.avgHr)
+      .filter((v): v is number => v != null);
+    if (avgHrs.length === 0) return null;
+    return avgHrs.reduce((a, b) => a + b, 0) / avgHrs.length;
+  }, [calendarSessions]);
+
   const loadSamples = () => {
     const merged = [...sampleSessions(), ...loadSessions()];
     saveSessions(merged);
@@ -430,6 +475,147 @@ export default function DashboardPage() {
             )}
           </div>
         </header>
+
+        {/* Trends Section */}
+        {sessions.length > 0 && (
+          <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 mb-4">Trends</h2>
+              
+              {/* Time Period Selector */}
+              <div className="flex flex-wrap items-center gap-3 mb-6">
+                {(["weekly", "monthly", "yearly"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setCalendarMode(mode)}
+                    className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${
+                      calendarMode === mode
+                        ? "bg-slate-900 text-white"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    {mode[0].toUpperCase() + mode.slice(1)}
+                  </button>
+                ))}
+              </div>
+
+              {/* Date Range and Navigation */}
+              <div className="flex items-center justify-between mb-6 gap-4">
+                <p className="text-base font-semibold text-slate-700">{calendarLabel}</p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => moveCalendar(-1)}
+                    className="h-10 w-10 rounded-full bg-slate-700 hover:bg-slate-800 text-white flex items-center justify-center transition"
+                    aria-label="Previous range"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveCalendar(1)}
+                    className="h-10 w-10 rounded-full bg-slate-700 hover:bg-slate-800 text-white flex items-center justify-center transition"
+                    aria-label="Next range"
+                  >
+                    ›
+                  </button>
+                </div>
+              </div>
+
+              {/* Main HRV Metric */}
+              <div className="mb-6">
+                <p className="text-5xl font-bold text-slate-900 mb-2">
+                  {hrvMetrics.averageHrv != null
+                    ? `${Math.round(hrvMetrics.averageHrv)} ms`
+                    : "— ms"}
+                </p>
+                <p className="text-base text-slate-600">
+                  {calendarMode === "weekly"
+                    ? "Weekly"
+                    : calendarMode === "monthly"
+                    ? "Monthly"
+                    : "Yearly"}{" "}
+                  Average HRV
+                </p>
+              </div>
+
+              {/* Stress Score Card */}
+              <div className="rounded-2xl bg-slate-950 text-white p-6 space-y-6 mb-6">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <span>🌟</span> Stress Score
+                </h3>
+                
+                {/* Daily Stress Scores */}
+                <div className="space-y-2">
+                  <div className="grid grid-cols-7 gap-2">
+                    {WEEKDAY_LABELS.map((label, index) => (
+                      <div key={label} className="text-center">
+                        <p className="text-xs text-slate-400 mb-2 font-medium">
+                          {label}
+                        </p>
+                        <div
+                          className={`rounded-lg h-12 w-full flex items-center justify-center font-semibold text-sm ${
+                            index === 0
+                              ? "bg-emerald-500 text-white"
+                              : "bg-slate-800 text-slate-300"
+                          }`}
+                        >
+                          {index === 0 ? "😎" : `${index + 20}`}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* HRV Range */}
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-700">
+                  <div>
+                    <p className="text-xs text-slate-400 mb-2">Max HRV</p>
+                    <p className="text-2xl font-bold">
+                      {hrvMetrics.maxHrv != null ? `${Math.round(hrvMetrics.maxHrv)} ms` : "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400 mb-2">Min HRV</p>
+                    <p className="text-2xl font-bold">
+                      {hrvMetrics.minHrv != null ? `${Math.round(hrvMetrics.minHrv)} ms` : "—"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Best and Worst Day */}
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-700">
+                  <div>
+                    <p className="text-xs text-slate-400 mb-2">Best Day</p>
+                    <p className="text-lg font-bold text-emerald-400">
+                      {bestDay ? new Date(bestDay).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400 mb-2">Worst Day</p>
+                    <p className="text-lg font-bold text-slate-200">
+                      {worstDay ? new Date(worstDay).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Resting Heart Rate */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+                <h3 className="text-base font-semibold text-slate-900 flex items-center gap-2 mb-4">
+                  <span>❤️</span> Resting Heart Rate
+                </h3>
+                <p className="text-3xl font-bold text-slate-900">
+                  {restingHr != null ? `${Math.round(restingHr)} bpm` : "—"}
+                </p>
+                <p className="text-sm text-slate-600 mt-2">
+                  Average resting heart rate this {calendarMode}
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
 
         <p
           className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3"
