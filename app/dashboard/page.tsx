@@ -312,6 +312,12 @@ export default function DashboardPage() {
     [weekSessions]
   );
 
+  // Stats for the selected calendar period (weekly/monthly/yearly)
+  const statsPeriod = useMemo(
+    () => computePeriodStats(calendarSessions),
+    [calendarSessions]
+  );
+
   const hrvInsight = useMemo(
     () => compareHrvWeekOverWeek(sessions, new Date()),
     [sessions]
@@ -368,6 +374,31 @@ export default function DashboardPage() {
     if (avgHrs.length === 0) return null;
     return avgHrs.reduce((a, b) => a + b, 0) / avgHrs.length;
   }, [calendarSessions]);
+
+  // Enhanced personalized insight with stress-based recommendations
+  const enhancedInsightBody = useMemo(() => {
+    if (sessions.length === 0) {
+      return "Log your first session to unlock personalized endurance recommendations based on your heart rate zones and HRV trend.";
+    }
+    
+    let baseMessage = hrvInsight.message;
+    
+    // Add personalized recommendation based on current stress level
+    const currentStress = getStressLevel(hrvMetrics.averageHrv);
+    let recommendation = "";
+    
+    if (currentStress.level === "low") {
+      recommendation = " Your recovery is excellent — this is a great time to push a challenging workout session.";
+    } else if (currentStress.level === "moderate") {
+      recommendation = " Keep building endurance at this pace. Consider mixing steady-state and interval training.";
+    } else if (currentStress.level === "high") {
+      recommendation = " Your body is under elevated stress — consider a lighter session or active recovery like walking.";
+    } else if (currentStress.level === "very_high") {
+      recommendation = " Prioritize rest and recovery. Light stretching or mobility work would be ideal today.";
+    }
+    
+    return baseMessage + recommendation;
+  }, [sessions.length, hrvInsight.message, hrvMetrics.averageHrv]);
 
   const loadSamples = () => {
     const merged = [...sampleSessions(), ...loadSessions()];
@@ -694,7 +725,7 @@ export default function DashboardPage() {
                 <h2 className="text-lg font-semibold text-slate-900 mb-2">
                   Today&apos;s insight
                 </h2>
-                <p className="text-slate-700 leading-relaxed text-sm">{insightBody}</p>
+                <p className="text-slate-700 leading-relaxed text-sm">{enhancedInsightBody}</p>
                 {sessions.length > 0 && hrvInsight.percentChangeVsLastWeek != null && (
                   <p className="mt-4 text-lg font-semibold text-emerald-700">
                     {hrvInsight.percentChangeVsLastWeek >= 0 ? "+" : ""}
