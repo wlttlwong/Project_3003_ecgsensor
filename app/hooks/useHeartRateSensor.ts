@@ -1,4 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { ECGFilter } from '../utils/ecgFilters';
+import { calculateRMSSD } from '../utils/ecgAnalysis'
 
 const PMD_SERVICE_UUID = "fb005c80-02e7-f387-1cad-8acd2d8df0c8";
 const PMD_CONTROL_CHARACTERISTIC_UUID = "fb005c81-02e7-f387-1cad-8acd2d8df0c8";
@@ -11,7 +13,6 @@ interface ECGDataPoint {
   value: number;
 }
 
-
 interface HeartRateSensorHook {
   connect: () => Promise<void>;
   disconnect: () => void;
@@ -21,16 +22,19 @@ interface HeartRateSensorHook {
   isPaused: boolean;
   heartRate: number | null;
   ecgData: ECGDataPoint[];
+  rmssd: number; // Added RMSSD to the hook interface
   error: string | null;
   isConnected: boolean;
   isECGStreaming: boolean;
 }
 
 export function useHeartRateSensor(): HeartRateSensorHook {
-  // State Management Section
+  // --- State Management ---
   const [device, setDevice] = useState<BluetoothDevice | null>(null);
   const [heartRate, setHeartRate] = useState<number | null>(null);
   const [ecgData, setECGData] = useState<ECGDataPoint[]>([]);
+  const [rmssd, setRmssd] = useState<number>(0); // Added for Stress calculation
+  const [rrIntervals, setRrIntervals] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isECGStreaming, setIsECGStreaming] = useState<boolean>(false);
@@ -38,16 +42,37 @@ export function useHeartRateSensor(): HeartRateSensorHook {
   const [pmdDataCharacteristic, setPmdDataCharacteristic] = useState<BluetoothRemoteGATTCharacteristic | null>(null);
   const [isPaused, setIsPaused] = useState<boolean>(false);
 
+  // --- Refs for Simulation, Filtering & Analysis ---
+  const simulationRef = useRef<NodeJS.Timeout | null>(null);
+  const simulationCounterRef = useRef<number>(0);
+  const filterRef = useRef(new ECGFilter());
+  const lastPeakTimeRef = useRef<number>(0);
+
   const togglePaused = useCallback(() => {
     setIsPaused(prev => !prev);
   }, []);
 
-  // Connection Management
+  // --- Analysis Utility: Peak Detection & RMSSD ---
+  const analyzeSample = useCallback((value: number, timestamp: number) => {
+    const threshold = 600; // Peak threshold for R-peak detection
+    
+    if (value > threshold && (timestamp - lastPeakTimeRef.current) > 400) {
+      if (lastPeakTimeRef.current !== 0) {
+        const rr = timestamp - lastPeakTimeRef.current;
+        setRrIntervals(prev => {
+          const updated = [...prev, rr].slice(-30); // Buffer last 30 beats
+          setRmssd(calculateRMSSD(updated));
+          return updated;
+        });
+      }
+      lastPeakTimeRef.current = timestamp;
+    }
+  }, []);
+
+  // --- Connection Management ---
   const connect = useCallback(async () => {
     try {
-      if (!navigator.bluetooth) {
-        throw new Error('Web Bluetooth API is not supported in this browser.');
-      }
+      if (!navigator.bluetooth) throw new Error('Web Bluetooth API not supported.');
 
       const device = await navigator.bluetooth.requestDevice({
         filters: [{ services: [POLAR_HR_SERVICE_UUID] }],
@@ -55,139 +80,118 @@ export function useHeartRateSensor(): HeartRateSensorHook {
       });
 
       setDevice(device);
-
       device.addEventListener('gattserverdisconnected', () => {
         setIsConnected(false);
-        setHeartRate(null);
         setIsECGStreaming(false);
       });
 
       const server = await device.gatt?.connect();
       const hrService = await server?.getPrimaryService(POLAR_HR_SERVICE_UUID);
-      const hrCharacteristic = await hrService?.getCharacteristic(POLAR_HR_CHARACTERISTIC_UUID);
+      const hrChar = await hrService?.getCharacteristic(POLAR_HR_CHARACTERISTIC_UUID);
 
-      await hrCharacteristic?.startNotifications();
-      hrCharacteristic?.addEventListener('characteristicvaluechanged', (event) => {
-        const value = (event.target as BluetoothRemoteGATTCharacteristic).value;
-        if (value) {
-          setHeartRate(parseHeartRate(value));
-        }
+      await hrChar?.startNotifications();
+      hrChar?.addEventListener('characteristicvaluechanged', (e) => {
+        const val = (e.target as BluetoothRemoteGATTCharacteristic).value;
+        if (val) setHeartRate(parseHeartRate(val));
       });
 
       const pmdService = await server?.getPrimaryService(PMD_SERVICE_UUID);
-      const pmdControl = await pmdService?.getCharacteristic(PMD_CONTROL_CHARACTERISTIC_UUID);
-      const pmdData = await pmdService?.getCharacteristic(PMD_DATA_CHARACTERISTIC_UUID);
-
-      setPmdControlCharacteristic(pmdControl as BluetoothRemoteGATTCharacteristic);
-      setPmdDataCharacteristic(pmdData as BluetoothRemoteGATTCharacteristic);
+      setPmdControlCharacteristic(await pmdService?.getCharacteristic(PMD_CONTROL_CHARACTERISTIC_UUID) as any);
+      setPmdDataCharacteristic(await pmdService?.getCharacteristic(PMD_DATA_CHARACTERISTIC_UUID) as any);
 
       setIsConnected(true);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setError(err instanceof Error ? err.message : 'Connection failed');
     }
   }, []);
 
   const disconnect = useCallback(() => {
-    if (device && device.gatt?.connected) {
-      device.gatt.disconnect();
-    }
+    if (device?.gatt?.connected) device.gatt.disconnect();
+    if (simulationRef.current) clearInterval(simulationRef.current);
     setDevice(null);
-    setHeartRate(null);
     setIsConnected(false);
     setIsECGStreaming(false);
-    setPmdControlCharacteristic(null);
-    setPmdDataCharacteristic(null);
     setECGData([]);
+    setRmssd(0);
+    filterRef.current.reset();
   }, [device]);
 
-  // ECG Stream Control
+  // --- ECG Stream Control ---
   const startECGStream = useCallback(async () => {
+    // 1. Simulation Mode
     if (!pmdControlCharacteristic || !pmdDataCharacteristic) {
-      throw new Error('PMD characteristics not available');
+      setIsECGStreaming(true);
+      if (simulationRef.current) clearInterval(simulationRef.current);
+
+      simulationRef.current = setInterval(() => {
+        if (isPaused) return;
+
+        const currentTime = Date.now();
+        const raw = generateSimulatedECG(simulationCounterRef.current);
+        const filtered = filterRef.current.process(raw);
+        
+        analyzeSample(filtered, currentTime);
+
+        setECGData(prev => [...prev, { timestamp: currentTime, value: filtered }].slice(-1000));
+        simulationCounterRef.current++;
+      }, 1000 / 130);
+      return;
     }
 
+    // 2. Real Bluetooth Mode
     try {
-      // Request Stream Setting
       await pmdControlCharacteristic.writeValue(new Uint8Array([0x01, 0x02]));
       await pmdControlCharacteristic.writeValue(new Uint8Array([0x01, 0x00]));
-
-      // Start Stream
       await pmdControlCharacteristic.writeValue(new Uint8Array([0x02, 0x00, 0x00, 0x01, 0x82, 0x00, 0x01, 0x01, 0x0E, 0x00]));
 
       await pmdDataCharacteristic.startNotifications();
       pmdDataCharacteristic.addEventListener('characteristicvaluechanged', (event) => {
         if (isPaused) return;
-
-        const characteristic = event.target as BluetoothRemoteGATTCharacteristic;
-        const value = characteristic.value;
+        const value = (event.target as BluetoothRemoteGATTCharacteristic).value;
 
         if (value) {
           const { samples } = parseECGData(value);
           const currentTime = Date.now();
-          const sampleInterval = 1000 / 130; // 130 Hz sampling rate
+          const sampleInterval = 1000 / 130;
 
-          const newEcgData = samples.map((sample, index) => {
-            const filteredValue = sample;
-            return {
-              timestamp: currentTime + index * sampleInterval,
-              value: filteredValue
-            };
+          const filteredBatch = samples.map((sample, index) => {
+            const filtered = filterRef.current.process(sample);
+            const ts = currentTime + index * sampleInterval;
+            analyzeSample(filtered, ts); // Analyze every sample for peaks
+            return { timestamp: ts, value: filtered };
           });
 
-          setECGData(prev => [...prev, ...newEcgData].slice(-1000)); // Keep last 1000 points
+          setECGData(prev => [...prev, ...filteredBatch].slice(-1000));
         }
       });
 
       setIsECGStreaming(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred while starting ECG stream');
+      setError(err instanceof Error ? err.message : 'Stream start failed');
     }
-  }, [pmdControlCharacteristic, pmdDataCharacteristic, isPaused]);
-  
+  }, [pmdControlCharacteristic, pmdDataCharacteristic, isPaused, analyzeSample]);
 
   const stopECGStream = useCallback(async () => {
-    if (pmdDataCharacteristic) {
-      await pmdDataCharacteristic.stopNotifications();
-    }
+    if (simulationRef.current) clearInterval(simulationRef.current);
+    if (pmdDataCharacteristic) await pmdDataCharacteristic.stopNotifications();
     setIsECGStreaming(false);
-    setECGData([]);
   }, [pmdDataCharacteristic]);
 
-  // Remove unused handlers:
-  // - handleHeartRateUpdate
-  // - handleECGData
-
-  // Effects & Cleanup
   useEffect(() => {
-    return () => {
-      disconnect();
-    };
+    return () => disconnect();
   }, [disconnect]);
 
   return {
-    connect,
-    disconnect,
-    startECGStream,
-    stopECGStream,
-    togglePaused,
-    isPaused,
-    heartRate,
-    ecgData,
-    error,
-    isConnected,
-    isECGStreaming
+    connect, disconnect, startECGStream, stopECGStream, togglePaused,
+    isPaused, heartRate, ecgData, rmssd, error, isConnected, isECGStreaming
   };
 }
 
+// --- Helper Functions ---
 function parseHeartRate(value: DataView): number {
   const flags = value.getUint8(0);
-  const rate16Bits = flags & 0x1;
-  if (rate16Bits) {
-    return value.getUint16(1, true);
-  } else {
-    return value.getUint8(1);
-  }
+  return (flags & 0x01) ? value.getUint16(1, true) : value.getUint8(1);
 }
 
 function parseECGData(value: DataView): { samples: number[] } {
@@ -195,14 +199,16 @@ function parseECGData(value: DataView): { samples: number[] } {
   for (let i = 0; i < 73; i++) {
     const startByte = 10 + i * 3;
     let sample = value.getUint8(startByte) | (value.getUint8(startByte + 1) << 8) | (value.getUint8(startByte + 2) << 16);
-    
-    // Convert to signed integer (two's complement)
-    if (sample & 0x800000) {
-      sample = sample - 0x1000000;
-    }
-    
+    if (sample & 0x800000) sample -= 0x1000000;
     samples.push(sample);
   }
-
   return { samples };
+}
+
+function generateSimulatedECG(index: number): number {
+  const phase = index % 130;
+  let val = (Math.random() - 0.5) * 50; // Random noise
+  if (phase > 60 && phase < 65) val += 800;
+  else if (phase > 80 && phase < 95) val += 150;
+  return val;
 }
