@@ -268,11 +268,11 @@ export function sampleSessions(): SessionRecord[] {
     };
   };
   return [
-    mk(0, "rest", 72, 88, 42, "Recovery — easy"),
-    mk(1, "walking", 98, 118, 35, "Moderate cardio"),
-    mk(2, "jogging", 142, 168, 28, "High intensity"),
-    mk(3, "cycling", 128, 155, 32, "Steady state"),
-    mk(9, "walking", 95, 112, 36, "Zone 2 focus"),
-    mk(10, "rest", 71, 86, 40, "Recovery — easy"),
+    mk(0, "rest", 72, 88, 42, "Low Stress 🌿"),
+    mk(1, "walking", 98, 118, 35, "Moderate Stress ⚡"),
+    mk(2, "jogging", 142, 168, 28, "High Stress ⚠️"),
+    mk(3, "cycling", 128, 155, 32, "Moderate Stress ⚡"),
+    mk(9, "walking", 95, 112, 36, "Moderate Stress ⚡"),
+    mk(10, "rest", 71, 86, 40, "Low Stress 🌿"),
   ];
 }

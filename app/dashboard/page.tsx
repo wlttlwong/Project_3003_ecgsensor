@@ -52,7 +52,7 @@ function getStressLevel(hrv: number | null): StressInfo {
     return {
       level: "low",
       label: "Low Stress",
-      emoji: "😌",
+      emoji: "🌿",
       color: "text-emerald-600",
       bgColor: "bg-emerald-50",
       description: "Excellent recovery. Body is well-adapted. Keep up the good training!",
@@ -63,7 +63,7 @@ function getStressLevel(hrv: number | null): StressInfo {
     return {
       level: "moderate",
       label: "Moderate Stress",
-      emoji: "🙂",
+      emoji: "⚡",
       color: "text-amber-600",
       bgColor: "bg-amber-50",
       description: "Normal training load. Good for building endurance, but monitor fatigue.",
@@ -74,7 +74,7 @@ function getStressLevel(hrv: number | null): StressInfo {
     return {
       level: "high",
       label: "High Stress",
-      emoji: "😟",
+      emoji: "⚠️",
       color: "text-orange-600",
       bgColor: "bg-orange-50",
       description: "Elevated stress or fatigue. Consider lighter session or recovery day.",
@@ -84,10 +84,50 @@ function getStressLevel(hrv: number | null): StressInfo {
   return {
     level: "very_high",
     label: "Very High Stress",
-    emoji: "😰",
+    emoji: "⛔",
     color: "text-red-600",
     bgColor: "bg-red-50",
     description: "High stress / possible overtraining. Rest and recover before next intense activity.",
+  };
+}
+
+function getStressCellClasses(hrv: number | null): { bgClass: string; textClass: string; borderClass: string } {
+  if (hrv == null) {
+    return {
+      bgClass: "bg-slate-50",
+      textClass: "text-slate-600",
+      borderClass: "border-slate-200",
+    };
+  }
+  
+  if (hrv > 60) {
+    return {
+      bgClass: "bg-emerald-50",
+      textClass: "text-emerald-700",
+      borderClass: "border-emerald-200",
+    };
+  }
+  
+  if (hrv >= 30) {
+    return {
+      bgClass: "bg-amber-50",
+      textClass: "text-amber-700",
+      borderClass: "border-amber-200",
+    };
+  }
+  
+  if (hrv >= 15) {
+    return {
+      bgClass: "bg-orange-50",
+      textClass: "text-orange-700",
+      borderClass: "border-orange-200",
+    };
+  }
+  
+  return {
+    bgClass: "bg-red-50",
+    textClass: "text-red-700",
+    borderClass: "border-red-200",
   };
 }
 
@@ -598,13 +638,16 @@ export default function DashboardPage() {
                       ? `${Math.round(hrvMetrics.averageHrv)} ms`
                       : "— ms"}
                   </p>
-                  <p className="text-base text-slate-600">
+                  <p className="text-base text-slate-600 mb-3">
                     {calendarMode === "weekly"
                       ? "Weekly"
                       : calendarMode === "monthly"
                       ? "Monthly"
                       : "Yearly"}{" "}
                     Average HRV
+                  </p>
+                  <p className="text-xs text-slate-500 px-3 py-2 bg-slate-50 rounded border border-slate-200">
+                    💡 <strong>Higher HRV</strong> = better recovery &amp; endurance. <strong>Lower HRV</strong> = fatigue or stress.
                   </p>
                 </div>
 
@@ -676,7 +719,7 @@ export default function DashboardPage() {
                     {restingHr != null ? `${Math.round(restingHr)} bpm` : "—"}
                   </p>
                   <p className="text-sm text-slate-600 mt-2">
-                    Average resting heart rate this {calendarMode}
+                    Average resting heart rate this {calendarMode === "weekly" ? "week" : calendarMode}
                   </p>
                 </div>
               </div>
@@ -962,8 +1005,15 @@ export default function DashboardPage() {
                             ? `${Math.round(s.avgHrvMs)} ms`
                             : "—"}
                         </td>
-                        <td className="px-3 py-3 text-slate-600 max-w-[160px]">
-                          {s.stressSummary}
+                        <td className="px-3 py-3">
+                          {(() => {
+                            const stressClasses = getStressCellClasses(s.avgHrvMs);
+                            return (
+                              <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium border ${stressClasses.bgClass} ${stressClasses.textClass} ${stressClasses.borderClass}`}>
+                                {s.stressSummary}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className="px-3 py-3">
                           <button
