@@ -5,8 +5,8 @@ import ECGChart from './components/ECGChart';
 
 export default function Home() {
   const {
-    connect, disconnect, startECGStream, stopECGStream,
-    heartRate, ecgData, error, isConnected, isECGStreaming
+    connect, disconnect, startECGStream, stopECGStream, togglePaused,
+    isPaused, heartRate, ecgData, error, isConnected, isECGStreaming
   } = useHeartRateSensor();
 
   return (
@@ -21,10 +21,25 @@ export default function Home() {
         error={error}
         heartRate={heartRate}
       />
-      
+
       {isECGStreaming && (
-        <div className="max-w-4xl mx-auto mt-8 bg-white p-4 rounded-lg shadow-inner">
-          <ECGChart ecgData={ecgData} />
+        <div className="max-w-4xl mx-auto mt-8 bg-white p-4 rounded-lg shadow-inner relative">
+          {/* PAUSE BUTTON UI */}
+          <div className="flex justify-end mb-2">
+            <button
+              onClick={togglePaused}
+              className={`px-4 py-1 rounded text-sm font-bold transition-colors ${
+                isPaused
+                ? 'bg-emerald-500 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {isPaused ? "RESUME" : "PAUSE"}
+            </button>
+          </div>
+
+          {/* Updated ECGChart with the required isPaused prop */}
+          <ECGChart ecgData={ecgData} isPaused={isPaused} />
         </div>
       )}
     </div>
