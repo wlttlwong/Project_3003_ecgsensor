@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import {
@@ -19,117 +17,12 @@ import {
   type SessionRecord,
 } from "../types/session";
 import { formatApproxHrZone } from "../lib/hrZones";
+import { getStressLevel, getStressCellClasses, type StressLevel } from "../lib/stress";
 
 type CalendarMode = "weekly" | "monthly" | "yearly";
 
 const WEEKDAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
 const HOUR_MARKERS = [0, 6, 12, 18];
-
-type StressLevel = "low" | "moderate" | "high" | "very_high";
-
-interface StressInfo {
-  level: StressLevel;
-  label: string;
-  emoji: string;
-  color: string;
-  bgColor: string;
-  description: string;
-}
-
-function getStressLevel(hrv: number | null): StressInfo {
-  if (hrv == null) {
-    return {
-      level: "moderate",
-      label: "No Data",
-      emoji: "—",
-      color: "text-slate-600",
-      bgColor: "bg-slate-100",
-      description: "Complete a session to see stress level",
-    };
-  }
-  
-  if (hrv > 60) {
-    return {
-      level: "low",
-      label: "Low Stress",
-      emoji: "🌿",
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-50",
-      description: "Excellent recovery. Body is well-adapted. Keep up the good training!",
-    };
-  }
-  
-  if (hrv >= 30) {
-    return {
-      level: "moderate",
-      label: "Moderate Stress",
-      emoji: "⚡",
-      color: "text-amber-600",
-      bgColor: "bg-amber-50",
-      description: "Normal training load. Good for building endurance, but monitor fatigue.",
-    };
-  }
-  
-  if (hrv >= 15) {
-    return {
-      level: "high",
-      label: "High Stress",
-      emoji: "⚠️",
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
-      description: "Elevated stress or fatigue. Consider lighter session or recovery day.",
-    };
-  }
-  
-  return {
-    level: "very_high",
-    label: "Very High Stress",
-    emoji: "⛔",
-    color: "text-red-600",
-    bgColor: "bg-red-50",
-    description: "High stress / possible overtraining. Rest and recover before next intense activity.",
-  };
-}
-
-function getStressCellClasses(hrv: number | null): { bgClass: string; textClass: string; borderClass: string } {
-  if (hrv == null) {
-    return {
-      bgClass: "bg-slate-50",
-      textClass: "text-slate-600",
-      borderClass: "border-slate-200",
-    };
-  }
-  
-  if (hrv > 60) {
-    return {
-      bgClass: "bg-emerald-50",
-      textClass: "text-emerald-700",
-      borderClass: "border-emerald-200",
-    };
-  }
-  
-  if (hrv >= 30) {
-    return {
-      bgClass: "bg-amber-50",
-      textClass: "text-amber-700",
-      borderClass: "border-amber-200",
-    };
-  }
-  
-  if (hrv >= 15) {
-    return {
-      bgClass: "bg-orange-50",
-      textClass: "text-orange-700",
-      borderClass: "border-orange-200",
-    };
-  }
-  
-  return {
-    bgClass: "bg-red-50",
-    textClass: "text-red-700",
-    borderClass: "border-red-200",
-  };
-}
 
 function startOfDay(d: Date): Date {
   const x = new Date(d);
@@ -335,6 +228,7 @@ export default function DashboardPage() {
   const [sensorStatus, setSensorStatus] = useState<
     "checking" | "disconnected" | "connected" | "unsupported"
   >("checking");
+  const [showCalibrationModal, setShowCalibrationModal] = useState(false);
 
   const refreshSessions = useCallback(() => {
     setSessions(loadSessions());
@@ -581,6 +475,24 @@ export default function DashboardPage() {
             )}
           </div>
         </header>
+
+        {/* Calibration Status Box */}
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">✓</span>
+            <div>
+              <p className="font-semibold text-emerald-900 text-sm">Calibration Status</p>
+              <p className="text-xs text-emerald-700 mt-1">Signal quality is good. Ready to start monitoring.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowCalibrationModal(true)}
+            className="text-xs font-medium text-emerald-700 hover:text-emerald-900 whitespace-nowrap px-2 py-1 rounded hover:bg-emerald-100 transition"
+          >
+            How to calibrate →
+          </button>
+        </div>
 
         {/* Trends Section + Overview Grid */}
         {sessions.length > 0 && (
@@ -1117,6 +1029,93 @@ export default function DashboardPage() {
                 </dd>
               </div>
             </dl>
+          </div>
+        </div>
+      )}
+
+      {/* Calibration Instructions Modal */}
+      {showCalibrationModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="calibration-title"
+        >
+          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-slate-200">
+            <div className="flex justify-between items-start gap-4">
+              <div>
+                <h2 id="calibration-title" className="text-xl font-semibold text-slate-900">
+                  How to Calibrate
+                </h2>
+                <p className="text-sm text-slate-500 mt-1">
+                  Step-by-step calibration guide for accurate heart rate measurement
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCalibrationModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-2xl leading-none"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-4 text-sm">
+              <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4">
+                <h3 className="font-semibold text-emerald-900 mb-2">✓ Good Signal Indicators</h3>
+                <ul className="space-y-2 text-emerald-800 text-xs">
+                  <li>• Heart rate line is steady and smooth</li>
+                  <li>• No sudden jumps or drops in readings</li>
+                  <li>• Consistent signal for 30+ seconds</li>
+                  <li>• Sensor shows stable contact with skin</li>
+                </ul>
+              </div>
+
+              <div className="space-y-3">
+                <h3 className="font-semibold text-slate-900">Calibration Steps</h3>
+                <ol className="space-y-3 text-slate-700">
+                  <li className="flex gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-200 text-slate-900 flex items-center justify-center text-xs font-semibold">1</span>
+                    <span><strong>Prepare:</strong> Sit quietly for 30-60 seconds in a relaxed position.</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-200 text-slate-900 flex items-center justify-center text-xs font-semibold">2</span>
+                    <span><strong>Position:</strong> Place your fingers on the camera lens and ensure steady contact.</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-200 text-slate-900 flex items-center justify-center text-xs font-semibold">3</span>
+                    <span><strong>Light:</strong> Ensure adequate room lighting (avoid direct sunlight on the lens).</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-200 text-slate-900 flex items-center justify-center text-xs font-semibold">4</span>
+                    <span><strong>Wait:</strong> Hold still while the signal stabilizes (typically 10-15 seconds).</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-200 text-slate-900 flex items-center justify-center text-xs font-semibold">5</span>
+                    <span><strong>Verify:</strong> Check that the heart rate value appears steady and reasonable (40-180 bpm).</span>
+                  </li>
+                </ol>
+              </div>
+
+              <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
+                <h3 className="font-semibold text-amber-900 mb-2">⚠️ Poor Signal Tips</h3>
+                <ul className="space-y-2 text-amber-800 text-xs">
+                  <li>• Clean lens with a soft cloth if image is blurry</li>
+                  <li>• Ensure fingers are not too dry or wet</li>
+                  <li>• Avoid moving or talking during calibration</li>
+                  <li>• If signal unstable, try again in 30 seconds</li>
+                </ul>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowCalibrationModal(false)}
+              className="w-full mt-4 px-4 py-2 rounded-lg bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition"
+            >
+              Got it, close
+            </button>
           </div>
         </div>
       )}
