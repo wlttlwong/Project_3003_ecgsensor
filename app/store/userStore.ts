@@ -1,33 +1,32 @@
-// app/store/userStore.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 interface UserProfile {
-    name: string;
-    age?: number;
-    stressTriggers?: string[];
-    goals?: string;
+  username: string;
+  age: number | string;
+  stressTrigger: string;
+  goals: string;
 }
 
-export const useUserStore = create<
-    UserProfile & {
-        setName: (name: string) => void;
-        updateProfile: (data: Partial<UserProfile) => void;
+interface UserStore extends UserProfile {
+  setUser: (data: Partial<UserProfile>) => void;
+  resetUser: () => void;
+}
+
+export const useUserStore = create<UserStore>()(
+  persist(
+    (set) => ({
+      username: '',
+      age: '',
+      stressTrigger: '',
+      goals: '',
+
+      setUser: (data) => set((state) => ({ ...state, ...data })),
+      
+      resetUser: () => set({ username: '', age: '', stressTrigger: '', goals: '' }),
+    }),
+    {
+      name: 'user-profile-storage', // Key used in localStorage
     }
->()(
-    persist(
-        (set) => ({
-            name: '',
-            age: undefined,
-            stressTriggers: [],
-            goals: '',
-
-            setName: (name: string) => set({ name: name.trim() }),
-
-            updateProfile: (data) => set((state) => ({ ...state, ...data }))
-        }),
-        {
-            name: 'stressguard-user-profile', 
-        }
-    )
+  )
 );
