@@ -8,7 +8,7 @@ const PMD_DATA_CHARACTERISTIC_UUID = "fb005c82-02e7-f387-1cad-8acd2d8df0c8";
 const POLAR_HR_SERVICE_UUID = 0x180d;
 const POLAR_HR_CHARACTERISTIC_UUID = 0x2a37;
 
-interface ECGDataPoint {
+export interface ECGDataPoint {
   timestamp: number;
   value: number;
 }
@@ -22,7 +22,8 @@ interface HeartRateSensorHook {
   isPaused: boolean;
   heartRate: number | null;
   ecgData: ECGDataPoint[];
-  rmssd: number; // Added RMSSD to the hook interface
+  rmssd: number;
+  sessionSeconds: number;
   error: string | null;
   isConnected: boolean;
   isECGStreaming: boolean;
@@ -41,12 +42,14 @@ export function useHeartRateSensor(): HeartRateSensorHook {
   const [pmdControlCharacteristic, setPmdControlCharacteristic] = useState<BluetoothRemoteGATTCharacteristic | null>(null);
   const [pmdDataCharacteristic, setPmdDataCharacteristic] = useState<BluetoothRemoteGATTCharacteristic | null>(null);
   const [isPaused, setIsPaused] = useState<boolean>(false);
+  const [sessionSeconds, setSessionSeconds] = useState<number>(0);
 
   // --- Refs for Simulation, Filtering & Analysis ---
   const simulationRef = useRef<NodeJS.Timeout | null>(null);
   const simulationCounterRef = useRef<number>(0);
   const filterRef = useRef(new ECGFilter());
   const lastPeakTimeRef = useRef<number>(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const togglePaused = useCallback(() => {
     setIsPaused(prev => !prev);
@@ -115,10 +118,21 @@ export function useHeartRateSensor(): HeartRateSensorHook {
     setECGData([]);
     setRmssd(0);
     filterRef.current.reset();
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
   }, [device]);
 
   // --- ECG Stream Control ---
   const startECGStream = useCallback(async () => {
+    setSessionSeconds(0);
+    timerRef.current = setInterval(() => {
+      if (!isPaused) {
+        setSessionSeconds(prev => prev +1);
+      }
+    }, 1000);
+
     // 1. Simulation Mode
     if (!pmdControlCharacteristic || !pmdDataCharacteristic) {
       setIsECGStreaming(true);
@@ -176,6 +190,10 @@ export function useHeartRateSensor(): HeartRateSensorHook {
     if (simulationRef.current) clearInterval(simulationRef.current);
     if (pmdDataCharacteristic) await pmdDataCharacteristic.stopNotifications();
     setIsECGStreaming(false);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
   }, [pmdDataCharacteristic]);
 
   useEffect(() => {
@@ -184,7 +202,7 @@ export function useHeartRateSensor(): HeartRateSensorHook {
 
   return {
     connect, disconnect, startECGStream, stopECGStream, togglePaused,
-    isPaused, heartRate, ecgData, rmssd, error, isConnected, isECGStreaming
+    isPaused, heartRate, ecgData, rmssd, sessionSeconds, error, isConnected, isECGStreaming
   };
 }
 
