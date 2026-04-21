@@ -24,7 +24,7 @@ export default function Home() {
 
   const stressData = getStressLabel(rmssd);
 
-  // Helper to format 75 seconds -> "01:15"
+  // Formats time to MM:SS as seen in the team's dashboard tables
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -32,24 +32,29 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-8 text-zinc-900">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[#f8fafc] p-6 md:p-12 font-sans text-slate-800">
+      <div className="max-w-5xl mx-auto space-y-8">
         
-        {/* 1. Connection & Control Section */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-200">
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-xl font-black tracking-tight">Biometric Dashboard</h1>
-            <div className="flex items-center gap-2">
-              {/* Pulsing indicator only when connected AND streaming */}
-              <div className={`w-2 h-2 rounded-full ${
-                isConnected ? (isECGStreaming && !isPaused ? 'bg-emerald-500 animate-pulse' : 'bg-emerald-500') : 'bg-zinc-300'
-              }`} />
-              <span className="text-xs font-bold uppercase text-zinc-500">
-                {isConnected ? 'Polar H10 Connected' : 'Device Disconnected'}
-              </span>
-            </div>
+        {/* Header Section following the team's "Dashboard" style */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Live Monitoring</h1>
+            <p className="text-slate-500 mt-1 max-w-md">
+              Real-time ECG and HRV analysis — part of your personalized fitness insights.
+            </p>
           </div>
+          
+          <div className="flex items-center gap-3">
+             <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
+                isConnected ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-100 text-slate-400 border-slate-200'
+              }`}>
+                {isConnected ? '● Bluetooth Connected' : 'Bluetooth Unavailable'}
+              </div>
+          </div>
+        </div>
 
+        {/* Connection Control Card */}
+        <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
           <HeartRateMonitor
             isConnected={isConnected}
             isECGStreaming={isECGStreaming}
@@ -61,93 +66,114 @@ export default function Home() {
             heartRate={heartRate}
           />
         </div>
-        
-        {/* Simulation Bypass */}
+
+        {/* Simulation Mode Section */}
         {!isConnected && !isECGStreaming && (
-          <div className="p-4 border-2 border-dashed border-amber-200 rounded-2xl bg-amber-50/50 text-center">
-            <button 
-              onClick={startECGStream}
-              className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-xl font-bold transition-all shadow-md active:scale-95"
-            >
-              Launch UI Test Simulator
-            </button>
+          <div className="p-8 border-2 border-dashed border-slate-200 rounded-[2rem] bg-slate-50/50 text-center animate-in fade-in duration-500">
+            <div className="max-w-sm mx-auto space-y-4">
+              <div className="bg-white w-12 h-12 rounded-2xl shadow-sm flex items-center justify-center mx-auto border border-slate-100">
+                <span className="text-xl">🧪</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">No Device Detected?</h3>
+                <p className="text-sm text-slate-500">Launch the simulator to test chart rendering and HRV metrics without hardware.</p>
+              </div>
+              <button 
+                onClick={startECGStream}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg active:scale-95"
+              >
+                Launch Live Simulator
+              </button>
+            </div>
           </div>
         )}
 
         {isECGStreaming && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             
-            {/* 2. Metrics Bento Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {/* Timer Card */}
-              <div className={`bg-white p-4 rounded-2xl border transition-all ${isPaused ? 'border-amber-200 bg-amber-50/30' : 'border-zinc-200'}`}>
-                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Session</p>
-                <p className={`text-2xl font-black font-mono ${isPaused ? 'text-amber-600' : 'text-zinc-900'}`}>
+            {/* Metrics Bento Grid following the team's "Trends" cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              
+              {/* Duration Card */}
+              <div className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100">
+                <p className="text-sm font-medium text-slate-400 mb-1">Duration</p>
+                <p className={`text-3xl font-bold ${isPaused ? 'text-slate-300' : 'text-slate-900'}`}>
                   {formatTime(sessionSeconds)}
                 </p>
               </div>
 
-              {/* HRV Card */}
-              <div className="bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm">
-                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">HRV (RMSSD)</p>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-black">{rmssd.toFixed(0)}</span>
-                  <span className="text-xs font-bold text-zinc-400">ms</span>
+              {/* Heart Rate Card */}
+              <div className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100">
+                <p className="text-sm font-medium text-slate-400 mb-1">Current HR</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-slate-900">{heartRate || '--'}</span>
+                  <span className="text-sm font-semibold text-slate-400">bpm</span>
                 </div>
               </div>
 
-              {/* Stress Card */}
-              <div className="bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm">
-                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Stress</p>
-                <p className={`text-lg font-black ${stressData.color}`}>{stressData.label}</p>
+              {/* HRV Card */}
+              <div className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100">
+                <p className="text-sm font-medium text-slate-400 mb-1">Live HRV</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-slate-900">{rmssd.toFixed(0)}</span>
+                  <span className="text-sm font-semibold text-slate-400">ms</span>
+                </div>
               </div>
 
-              {/* Export Button */}
+              {/* Export Button following team button style */}
               <button 
                 onClick={() => downloadECGData(ecgData)}
-                disabled={ecgData.length === 0}
-                className="bg-zinc-900 text-white p-4 rounded-2xl hover:bg-zinc-800 disabled:opacity-50 transition-all flex flex-col justify-center items-center group shadow-lg"
+                className="bg-[#10b981] text-white p-6 rounded-[1.5rem] hover:bg-[#059669] transition-all flex flex-col justify-center items-center shadow-md shadow-emerald-100 group"
               >
-                <span className="text-[10px] font-black uppercase opacity-60 group-hover:opacity-100">Export Session</span>
-                <span className="text-lg font-black">.CSV</span>
+                <span className="text-xs font-bold uppercase tracking-widest opacity-80 mb-1">Save Session</span>
+                <span className="text-xl font-bold">Export .CSV</span>
               </button>
             </div>
 
-            {/* 3. Live ECG Feed */}
-            <div className="bg-white p-6 rounded-2xl shadow-xl border border-zinc-200">
-              <div className="flex justify-between items-center mb-6">
+            {/* Live ECG Feed Card */}
+            <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
                 <div>
-                  <h2 className="text-lg font-black text-zinc-800 uppercase tracking-tight">ECG Live Feed</h2>
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase">
-                    {isPaused ? "Recording Suspended" : "Real-time 130Hz DSP Filtered"}
-                  </p>
+                  <h2 className="text-xl font-bold text-slate-900">ECG Live Feed</h2>
+                  <p className="text-sm text-slate-400">130Hz Sampling Rate — Filtered Signal</p>
                 </div>
                 
                 <button 
                   onClick={togglePaused}
-                  className={`px-8 py-2 rounded-xl font-black text-xs transition-all active:scale-95 shadow-sm border ${
+                  className={`px-8 py-3 rounded-2xl font-bold text-sm transition-all active:scale-95 flex items-center gap-2 border ${
                     isPaused 
-                    ? 'bg-emerald-500 text-white border-emerald-400 hover:bg-emerald-600' 
-                    : 'bg-zinc-100 text-zinc-600 border-zinc-200 hover:bg-zinc-200'
+                    ? 'bg-blue-500 text-white border-blue-400 shadow-lg shadow-blue-100' 
+                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                   }`}
                 >
-                  {isPaused ? "▶ RESUME STREAM" : "⏸ PAUSE STREAM"}
+                  {isPaused ? "▶ Resume Stream" : "⏸ Pause Stream"}
                 </button>
               </div>
 
-              {/* Chart Container with Relative Positioning for the Overlay */}
-              <div className="h-72 w-full bg-zinc-950 rounded-xl overflow-hidden border-4 border-zinc-900 shadow-inner relative">
-                {/* Visual Block for Pause State */}
+              {/* Chart Container with specific dark mode styling */}
+              <div className="h-80 w-full bg-slate-950 rounded-[1.5rem] overflow-hidden relative shadow-inner">
                 {isPaused && (
-                  <div className="absolute inset-0 z-20 bg-black/30 backdrop-blur-[1px] flex items-center justify-center transition-all">
-                    <div className="bg-zinc-900/90 border border-zinc-700 px-4 py-2 rounded-lg shadow-2xl flex items-center gap-3">
-                      <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
-                      <span className="text-white text-[10px] font-black uppercase tracking-[0.2em]">Live Feed Paused</span>
+                  <div className="absolute inset-0 z-20 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center">
+                    <div className="bg-white px-6 py-3 rounded-2xl shadow-xl">
+                      <span className="text-slate-900 text-sm font-bold tracking-tight">Stream Paused</span>
                     </div>
                   </div>
                 )}
                 
                 <ECGChart ecgData={ecgData} isPaused={isPaused} />
+              </div>
+              
+              {/* Stress Score Insight */}
+              <div className="mt-8 p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-4">
+                <div className={`p-3 rounded-xl bg-white shadow-sm text-2xl`}>
+                  {stressData.label === 'Relaxed' ? '😎' : stressData.label === 'Moderate' ? '😐' : '😰'}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-400 uppercase tracking-widest">Stress Insight</p>
+                  <p className={`text-lg font-bold ${stressData.color}`}>
+                    Current state is {stressData.label} — based on your live HRV.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
