@@ -6,16 +6,23 @@ import { useHeartRateSensor } from './hooks/useHeartRateSensor';
 import { useUserStore } from './store/userStore';
 import HeartRateMonitor from './components/HeartRateMonitor';
 import ECGChart from './components/ECGChart';
+import FAQModal, { FAQ_DATABASE } from './components/FAQModal';
 
 export default function Home() {
-  const { username, stressTrigger, setUser } = useUserStore();
+  // 1. All needed values
+  const { username, age, height, stressTrigger, goals, setUser } = useUserStore();
   const [isHydrated, setIsHydrated] = useState(false);
 
   // Form states for Onboarding
   const [fName, setFName] = useState("");
   const [fAge, setFAge] = useState("");
+  const [fHeight, setFHeight] = useState("");
   const [fTrigger, setFTrigger] = useState("");
   const [fGoal, setFGoal] = useState("");
+  const [isProfileOpen, setIsProfileOpen] = useState(false); // Settings toggle
+
+  // FAQ Session
+  const [selectedFaqId, setSelectedFaqId] = useState<string | null>(null);
 
   // Label Logic
   const [selectedLabel, setSelectedLabel] = useState<string>("None");
@@ -39,6 +46,14 @@ export default function Home() {
   useEffect(() => {
     setIsHydrated(true);
 
+    // 2. Populate form fields from store (for profile editing)
+    if (username) {
+      setFName(username);
+      setFAge(age || "");
+      setFHeight(height || "");
+      setFTrigger(stressTrigger || "");
+      setFGoal(goals || "");
+    }
     const savedTime = localStorage.getItem("lastSessionEndTime");
     if (savedTime) {
       setLastSessionEndTime(savedTime);
@@ -58,10 +73,11 @@ export default function Home() {
   };
 
   const handleSaveProfile = () => {
-    if (!fName || !fAge || !fTrigger || !fGoal) return alert("Please fill all fields");
+    if (!fName || !fAge || !fHeight || !fTrigger || !fGoal) return alert("Please fill all fields");
     setUser({
       username: fName,
       age: fAge,
+      height: fHeight,
       stressTrigger: fTrigger,
       goals: fGoal
     });
@@ -143,6 +159,14 @@ export default function Home() {
           <Link href="/" className="text-blue-400">LIVE MONITORING</Link>
           <Link href="/history" className="hover:text-blue-400 transition-colors">HISTORY</Link>
           <Link href="/chatbot" className="hover:text-blue-400 transition-colors">CHATBOT</Link>
+          
+          {/* Updated FAQ */}
+          <button
+            onClick={() => setIsProfileOpen(true)}
+            className='bg-white/10 p-2 px-4 rounded-full border border-white/20 hover:bg-white/20 transition-all'
+          >
+            PROFILE SETTINGS
+          </button>
         </div>
       </nav>
 
@@ -257,19 +281,78 @@ export default function Home() {
             <div className="lg:col-span-4 bg-[#5C66A3]/80 backdrop-blur-xl rounded-[40px] p-10 flex flex-col shadow-2xl">
               <h3 className="text-3xl font-bold mb-8 text-center">FAQ</h3>
               <div className="space-y-6 flex-grow">
-                {["What is HRV?", "How is Stress Score calculated?", "What do Stress Alerts indicate?", "How to interpret HRV trends?"].map((q) => (
-                  <button key={q} className="w-full text-left font-bold text-lg hover:text-blue-300 transition-colors">
-                    {q}
+
+                {/* Updated */}
+                {FAQ_DATABASE.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setSelectedFaqId(item.id)} // trigger slide-up page
+                    className='w-full text-left font-bold text-lg hover:text-blue-300 transition-colors flex justify-betweem'
+                  >
+                    <span>{item.q}</span>
+                    <span>→</span>
                   </button>
                 ))}
               </div>
-              <button className="mt-12 text-lg font-bold underline underline-offset-8 decoration-2 hover:text-blue-200 transition-all">
+
+              {/* Link to quick tip page */}
+              <Link href="/tips" className='mt-12 text-lg font-bold underline underline-offset-8 decoration-2 hover:text-blue-200 transition-all text-center'>
                 Quick Tips to release stress
-              </button>
+              </Link>
             </div>
           </div>
         )}
+
+        {/* Profile modal */}
+        {isProfileOpen && (
+          <div className='fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-6'>
+            <div className='bg-[#1E2A5E] w-full max-w-md rounded-[30px] p-8 border border-white/10 shadow-2xl'>
+              <h3 className='text-2xl font-bold mb-6'>User Profile</h3>
+              <div className='space-y-4 text-left'>
+                <div className='text-sm opacity-50 mb-2 font-bold uppercase tracking-wider'>Username: {username}</div>
+
+                <div className='space-y-1'>
+                  <label className='text-[10px] uppercase font-bold opacity-40 ml-2'>Age</label>
+                  <input className='w-full bg-white/5 p-4 rounded-xl border border-white/10 focus:border-blue-500 outline-none' value={fAge} onChange={(e) => setFAge(e.target.value)} />
+                </div>
+
+                <div className='space-y-1'>
+                  <label className='text-[10px] uppercase font-bold opacity-40 ml-2'>Height (cm)</label>
+                  <input className='w-full bg-white/5 p-4 rounded-xl border border-white/10 focus:border-blue-500 outline-none' value={fHeight} onChange={(e) => setFHeight(e.target.value)} />
+                </div>
+
+                <div className='space-y-1'>
+                  <label className='text-[10px] uppercase font-bold opacity-40 ml-2'>Main Stress Trigger</label>
+                  <input className='w-full bg-white/5 p-4 rounded-xl border border-white/10 focus:border-blue-500 outline-none' value={fTrigger} onChange={(e) => setFTrigger(e.target.value)} />
+                </div>
+
+                <div className='space-y-1'>
+                  <label className='text-[10px] uppercase font-bold opacity-40 ml-2'>Main Goal</label>
+                  <input className='w-full bg-white/5 p-4 rounded-xl border border-white/10 focus:border-blue-500 outline-none' value={fGoal} onChange={(e) => setFGoal(e.target.value)} />
+                </div>
+
+                <div className='flex gap-4 pt-4'>
+                  <button
+                    onClick={() => { handleSaveProfile(); setIsProfileOpen(false); }}
+                    className='flex-1 py-4 bg-blue-600 rounded-xl font-bold hover:bg-blue-500 transition-all'
+                  >
+                    Save Changes
+                  </button>
+                  <button onClick={() => setIsProfileOpen(false)} className='flex-1 py-4 bg-white/5 rounded-xl font-bold'>Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* FAQ Modal */}
+        <FAQModal
+          isOpen={selectedFaqId !== null}
+          onClose={() => setSelectedFaqId(null)}
+          selectedId={selectedFaqId}
+        />
       </div>
     </div>
+  
   );
 }
