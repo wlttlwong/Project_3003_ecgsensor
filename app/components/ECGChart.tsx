@@ -1,5 +1,5 @@
 "use client"
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 
@@ -16,20 +16,16 @@ interface ECGChartProps {
 }      
 
 const ECGChart: React.FC<ECGChartProps> = ({ ecgData, isPaused }) => {
-  const formatTimestamp = (timestamp: number): string => {
-    try {
-      return new Date(timestamp).toISOString();
-    } catch (error) {
-      console.error('Invalid timestamp:', timestamp);
-      console.error(error);
-      return 'Invalid Date';
-    }
-  };
+  const lastDataRef = useRef<any>(null);
 
   const ecgChartData = useMemo(() => {
+    if (isPaused && lastDataRef.current) {
+      return lastDataRef.current;
+    }
+
     const displayData = ecgData.slice(-1000);
 
-    return {
+    const newData = {
       labels: displayData.map((_, i) => i),
       datasets: [
         {
@@ -43,11 +39,15 @@ const ECGChart: React.FC<ECGChartProps> = ({ ecgData, isPaused }) => {
         },
       ],
     };
-  }, [ecgData]);
+
+    lastDataRef.current = newData;
+    return newData;
+  }, [ecgData, isPaused]); 
 
 
   const chartOptions = {
     responsive: true,
+    maintainAspectRatio: false, 
     animation: false as const,
     spanGaps: true,
     plugins: {
@@ -63,23 +63,30 @@ const ECGChart: React.FC<ECGChartProps> = ({ ecgData, isPaused }) => {
         display: false,
       },
       y: {
-        suggestedMin: -1000,
-        suggestedMax: 1000,
+        suggestedMin: -800,
+        suggestedMax: 800,
         grid: {
-          color: 'rgba(255, 255, 255, 0.1)',
+          color: 'rgba(255, 255, 255, 0.05)',
         },
+        ticks: {
+          color: '#52525b',
+          font: {
+            size: 10
+          }
+        }
       },
     },
   } as const;
 
   return (
-    <div className="relative w-full h-64 bg-zinc-950 p-4 rounded-xl border border-zinc-800">
+    <div className="relative w-full h-full">
       {/* Visual Overlay for Paused State */}
       {isPaused && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 rounded-xl backdrop-blur-sm">
-          <span className="px-4 py-2 bg-zinc-800 text-white rounded-full text-sm font-bold border border-zinc-700">
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 backdrop-blur-[2px] transition-all">
+          <div className="flex items-center gap-2 px-4 py-2 bg-zinc-900/90 text-white rounded-lg text-xs font-black tracking-widest border border-zinc-700 shadow-2xl">
+            <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
             PAUSED
-          </span>
+          </div>
         </div>
       )}
       <Line options={chartOptions} data={ecgChartData} />

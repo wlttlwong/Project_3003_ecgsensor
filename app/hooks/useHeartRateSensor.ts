@@ -128,10 +128,12 @@ export function useHeartRateSensor(): HeartRateSensorHook {
   const startECGStream = useCallback(async () => {
     setSessionSeconds(0);
     timerRef.current = setInterval(() => {
+      if (isPaused) return;
+      const currentTime = Date.now()
       if (!isPaused) {
         setSessionSeconds(prev => prev +1);
       }
-    }, 1000);
+    }, 1000 / 130);
 
     // 1. Simulation Mode
     if (!pmdControlCharacteristic || !pmdDataCharacteristic) {

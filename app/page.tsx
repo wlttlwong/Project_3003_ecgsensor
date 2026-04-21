@@ -40,7 +40,10 @@ export default function Home() {
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-xl font-black tracking-tight">Biometric Dashboard</h1>
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-300'}`} />
+              {/* Pulsing indicator only when connected AND streaming */}
+              <div className={`w-2 h-2 rounded-full ${
+                isConnected ? (isECGStreaming && !isPaused ? 'bg-emerald-500 animate-pulse' : 'bg-emerald-500') : 'bg-zinc-300'
+              }`} />
               <span className="text-xs font-bold uppercase text-zinc-500">
                 {isConnected ? 'Polar H10 Connected' : 'Device Disconnected'}
               </span>
@@ -77,9 +80,11 @@ export default function Home() {
             {/* 2. Metrics Bento Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {/* Timer Card */}
-              <div className="bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm">
+              <div className={`bg-white p-4 rounded-2xl border transition-all ${isPaused ? 'border-amber-200 bg-amber-50/30' : 'border-zinc-200'}`}>
                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Session</p>
-                <p className="text-2xl font-black font-mono">{formatTime(sessionSeconds)}</p>
+                <p className={`text-2xl font-black font-mono ${isPaused ? 'text-amber-600' : 'text-zinc-900'}`}>
+                  {formatTime(sessionSeconds)}
+                </p>
               </div>
 
               {/* HRV Card */}
@@ -100,7 +105,8 @@ export default function Home() {
               {/* Export Button */}
               <button 
                 onClick={() => downloadECGData(ecgData)}
-                className="bg-zinc-900 text-white p-4 rounded-2xl hover:bg-zinc-800 transition-all flex flex-col justify-center items-center group shadow-lg"
+                disabled={ecgData.length === 0}
+                className="bg-zinc-900 text-white p-4 rounded-2xl hover:bg-zinc-800 disabled:opacity-50 transition-all flex flex-col justify-center items-center group shadow-lg"
               >
                 <span className="text-[10px] font-black uppercase opacity-60 group-hover:opacity-100">Export Session</span>
                 <span className="text-lg font-black">.CSV</span>
@@ -112,22 +118,35 @@ export default function Home() {
               <div className="flex justify-between items-center mb-6">
                 <div>
                   <h2 className="text-lg font-black text-zinc-800 uppercase tracking-tight">ECG Live Feed</h2>
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase">Real-time 130Hz DSP Filtered</p>
+                  <p className="text-[10px] font-bold text-zinc-400 uppercase">
+                    {isPaused ? "Recording Suspended" : "Real-time 130Hz DSP Filtered"}
+                  </p>
                 </div>
                 
                 <button 
                   onClick={togglePaused}
-                  className={`px-8 py-2 rounded-xl font-black text-xs transition-all active:scale-95 shadow-sm ${
+                  className={`px-8 py-2 rounded-xl font-black text-xs transition-all active:scale-95 shadow-sm border ${
                     isPaused 
-                    ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
-                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+                    ? 'bg-emerald-500 text-white border-emerald-400 hover:bg-emerald-600' 
+                    : 'bg-zinc-100 text-zinc-600 border-zinc-200 hover:bg-zinc-200'
                   }`}
                 >
-                  {isPaused ? "▶ RESUME" : "⏸ PAUSE"}
+                  {isPaused ? "▶ RESUME STREAM" : "⏸ PAUSE STREAM"}
                 </button>
               </div>
 
-              <div className="h-72 w-full bg-zinc-950 rounded-xl overflow-hidden border-4 border-zinc-900 shadow-inner">
+              {/* Chart Container with Relative Positioning for the Overlay */}
+              <div className="h-72 w-full bg-zinc-950 rounded-xl overflow-hidden border-4 border-zinc-900 shadow-inner relative">
+                {/* Visual Block for Pause State */}
+                {isPaused && (
+                  <div className="absolute inset-0 z-20 bg-black/30 backdrop-blur-[1px] flex items-center justify-center transition-all">
+                    <div className="bg-zinc-900/90 border border-zinc-700 px-4 py-2 rounded-lg shadow-2xl flex items-center gap-3">
+                      <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
+                      <span className="text-white text-[10px] font-black uppercase tracking-[0.2em]">Live Feed Paused</span>
+                    </div>
+                  </div>
+                )}
+                
                 <ECGChart ecgData={ecgData} isPaused={isPaused} />
               </div>
             </div>
