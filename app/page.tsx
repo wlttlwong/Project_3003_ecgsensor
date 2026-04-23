@@ -3,7 +3,7 @@ import { useHeartRateSensor } from './hooks/useHeartRateSensor';
 import HeartRateMonitor from './components/HeartRateMonitor';
 import ECGChart from './components/ECGChart';
 import { getStressLabel } from './utils/ecgAnalysis';
-import { downloadECGData } from './utils/exportData';
+import { downloadAndSaveSession } from './utils/exportData'; // Renamed import
 
 export default function Home() {
   const {
@@ -24,18 +24,35 @@ export default function Home() {
 
   const stressData = getStressLabel(rmssd);
 
-  // Formats time to MM:SS as seen in the team's dashboard tables
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Logic to prepare the payload for your Python Backend
+  const handleSaveAndExport = async () => {
+    // Basic math for the activity log table
+    const hrValues = ecgData.map(d => heartRate || 0).filter(v => v > 0);
+    const avgHr = hrValues.length > 0 
+      ? Math.round(hrValues.reduce((a, b) => a + b) / hrValues.length) 
+      : 0;
+    const maxHr = hrValues.length > 0 ? Math.max(...hrValues) : 0;
+
+    await downloadAndSaveSession(ecgData, {
+      activity_type: "Rest", // Defaulting to Rest like your team's log
+      duration: sessionSeconds,
+      hr_avg: avgHr,
+      hr_max: maxHr,
+      avg_hrv: Math.round(rmssd)
+    });
+  };
+
   return (
     <div className="min-h-screen bg-[#f8fafc] p-6 md:p-12 font-sans text-slate-800">
       <div className="max-w-5xl mx-auto space-y-8">
         
-        {/* Header Section following the team's "Dashboard" style */}
+        {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Live Monitoring</h1>
@@ -91,10 +108,9 @@ export default function Home() {
         {isECGStreaming && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             
-            {/* Metrics Bento Grid following the team's "Trends" cards */}
+            {/* Metrics Bento Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               
-              {/* Duration Card */}
               <div className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100">
                 <p className="text-sm font-medium text-slate-400 mb-1">Duration</p>
                 <p className={`text-3xl font-bold ${isPaused ? 'text-slate-300' : 'text-slate-900'}`}>
@@ -102,7 +118,6 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* Heart Rate Card */}
               <div className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100">
                 <p className="text-sm font-medium text-slate-400 mb-1">Current HR</p>
                 <div className="flex items-baseline gap-2">
@@ -111,7 +126,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* HRV Card */}
               <div className="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100">
                 <p className="text-sm font-medium text-slate-400 mb-1">Live HRV</p>
                 <div className="flex items-baseline gap-2">
@@ -120,9 +134,9 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Export Button following team button style */}
+              {/* Updated Export Button calling the Save Logic */}
               <button 
-                onClick={() => downloadECGData(ecgData)}
+                onClick={handleSaveAndExport}
                 className="bg-[#10b981] text-white p-6 rounded-[1.5rem] hover:bg-[#059669] transition-all flex flex-col justify-center items-center shadow-md shadow-emerald-100 group"
               >
                 <span className="text-xs font-bold uppercase tracking-widest opacity-80 mb-1">Save Session</span>
@@ -150,7 +164,6 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* Chart Container with specific dark mode styling */}
               <div className="h-80 w-full bg-slate-950 rounded-[1.5rem] overflow-hidden relative shadow-inner">
                 {isPaused && (
                   <div className="absolute inset-0 z-20 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center">
@@ -163,7 +176,6 @@ export default function Home() {
                 <ECGChart ecgData={ecgData} isPaused={isPaused} />
               </div>
               
-              {/* Stress Score Insight */}
               <div className="mt-8 p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-4">
                 <div className={`p-3 rounded-xl bg-white shadow-sm text-2xl`}>
                   {stressData.label === 'Relaxed' ? '😎' : stressData.label === 'Moderate' ? '😐' : '😰'}
