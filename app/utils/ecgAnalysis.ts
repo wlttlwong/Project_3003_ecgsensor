@@ -11,9 +11,32 @@ export function calculateRMSSD(rrIntervals: number[]): number {
   return Math.sqrt(meanSquaredDiff);
 }
 
+export function calculateStressScore(rmssd: number): number {
+  if (rmssd === 0) return 0;
+
+  // Baseline mapping: 
+  // RMSSD >= 100 is considered 0 stress (max relaxation)
+  // RMSSD <= 10 is considered 100 stress (high strain)
+  const minRmssd = 10;
+  const maxRmssd = 100;
+  
+  const clampedRMSSD = Math.max(minRmssd, Math.min(maxRmssd, rmssd));
+  
+  // Calculate score: 100 minus the percentage of relaxation
+  const score = 100 - ((clampedRMSSD - minRmssd) / (maxRmssd - minRmssd)) * 100;
+  
+  return Math.round(score);
+}
+
 export function getStressLabel(rmssd: number): { label: string; color: string } {
-  if (rmssd === 0) return { label: "Analyzing...", color: "text-zinc-400" };
-  if (rmssd > 50) return { label: "Relaxed", color: "text-emerald-500" };
-  if (rmssd > 20) return { label: "Moderate", color: "text-amber-500" };
-  return { label: "High Stress", color: "text-rose-500" };
+  if (rmssd === 0) return { label: "Analyzing...", color: "text-slate-500" };
+  
+  // Based on standard HRV resting ranges
+  if (rmssd > 50) {
+    return { label: "Relaxed", color: "text-emerald-400" };
+  }
+  if (rmssd > 25) {
+    return { label: "Moderate", color: "text-amber-400" };
+  }
+  return { label: "High Stress", color: "text-rose-400" };
 }
