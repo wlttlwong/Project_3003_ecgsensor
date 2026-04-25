@@ -32,14 +32,22 @@ const SessionSummary: React.FC<SessionSummaryProps> = ({
 }) => {
   const [userNotes, setUserNotes] = useState(notes);
 
+  // Colors for arc based on stress level
+  const arcColors: Record<string, string> = {
+    Low: "#22c55e",      // green-500
+    Medium: "#eab308",   // yellow-500
+    High: "#ef4444",     // red-500
+    Critical: "#7f1d1d", // dark red
+  };
+
   const chartData = {
     labels: ["Stress Score", "Remaining"],
     datasets: [
       {
         data: [stressScore, 100 - stressScore],
-        backgroundColor: ["#5C66A3", "transparent"],
-        borderColor: ["#5C66A3", "#5C66A3"],
-        borderWidth: 4, // thin arc
+        backgroundColor: [arcColors[stressLevel], "transparent"],
+        borderColor: [arcColors[stressLevel], arcColors[stressLevel]],
+        borderWidth: 4,
       },
     ],
   };
@@ -71,7 +79,7 @@ const SessionSummary: React.FC<SessionSummaryProps> = ({
           <Doughnut data={chartData} options={chartOptions} />
         </div>
 
-        {/* Overlayed score + labels centered inside, nudged down */}
+        {/* Overlayed score + labels */}
         <div className="absolute inset-0 flex flex-col items-center justify-center translate-y-[30px]">
           <span className="text-7xl font-extrabold text-white drop-shadow">
             {stressScore}
@@ -88,30 +96,24 @@ const SessionSummary: React.FC<SessionSummaryProps> = ({
       {/* Metrics */}
       <div className="grid grid-cols-3 gap-6 mb-6 w-full max-w-4xl text-center">
         <div className="bg-[#5C66A3] rounded-lg p-6">
-          <p className="text-xs tracking-wider font-semibold mb-2">
-            AVERAGE HEART RATE
-          </p>
+          <p className="text-xs tracking-wider font-semibold mb-2">AVERAGE HEART RATE</p>
           <p className="text-2xl font-bold">
             <span className="text-white">{avgHR}</span>{" "}
-            <span className="text-[#0A0F2C]">bpm</span>
+            <span className="text-gray-400">bpm</span>
           </p>
         </div>
         <div className="bg-[#5C66A3] rounded-lg p-6">
-          <p className="text-xs tracking-wider font-semibold mb-2">
-            MAX HEART RATE
-          </p>
+          <p className="text-xs tracking-wider font-semibold mb-2">MAX HEART RATE</p>
           <p className="text-2xl font-bold">
             <span className="text-white">{maxHR}</span>{" "}
-            <span className="text-[#0A0F2C]">bpm</span>
+            <span className="text-gray-400">bpm</span>
           </p>
         </div>
         <div className="bg-[#5C66A3] rounded-lg p-6">
-          <p className="text-xs tracking-wider font-semibold mb-2">
-            AVERAGE HRV
-          </p>
+          <p className="text-xs tracking-wider font-semibold mb-2">AVERAGE HRV</p>
           <p className="text-2xl font-bold">
             <span className="text-white">{avgHRV}</span>{" "}
-            <span className="text-[#0A0F2C]">ms</span>
+            <span className="text-gray-400">ms</span>
           </p>
         </div>
       </div>
@@ -122,38 +124,26 @@ const SessionSummary: React.FC<SessionSummaryProps> = ({
           <p className="text-xs tracking-wider font-semibold mb-2">SESSION DURATION</p>
           <p className="text-2xl font-bold">
             <span className="text-white">{duration}</span>{" "}
-            <span className="text-[#0A0F2C]">minutes</span>
+            <span className="text-gray-400">minutes</span>
           </p>
         </div>
 
         {/* Exercises Completed card */}
         <div className="col-span-2 bg-[#5C66A3] rounded-lg p-6">
-          <p className="text-xs tracking-wider font-semibold mb-4 text-center">
-            EXERCISES COMPLETED
-          </p>
+          <p className="text-xs tracking-wider font-semibold mb-4 text-center">EXERCISES COMPLETED</p>
           <div className="flex justify-evenly">
-            {/* Breathing */}
             <div className="flex flex-col items-center">
-              <p className="text-xs tracking-wider font-semibold mb-2">
-                BREATHING
-              </p>
+              <p className="text-xs tracking-wider font-semibold mb-2">BREATHING</p>
               <p className="text-4xl font-extrabold text-white">
                 {breathingCount}{" "}
-                <span className="text-[#0A0F2C] text-lg font-semibold">
-                  rounds
-                </span>
+                <span className="text-gray-400 text-lg font-semibold">rounds</span>
               </p>
             </div>
-            {/* Stretching */}
             <div className="flex flex-col items-center">
-              <p className="text-xs tracking-wider font-semibold mb-2">
-                STRETCHING
-              </p>
+              <p className="text-xs tracking-wider font-semibold mb-2">STRETCHING</p>
               <p className="text-4xl font-extrabold text-white">
                 {stretchingCount}{" "}
-                <span className="text-[#0A0F2C] text-lg font-semibold">
-                  rounds
-                </span>
+                <span className="text-gray-400 text-lg font-semibold">rounds</span>
               </p>
             </div>
           </div>
