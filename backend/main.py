@@ -92,7 +92,7 @@ async def chat(request: ChatRequest):
             model="qwen2.5:7b",
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": request.message}
+                {"role": "user", "content": full_user_message}
             ],
             temperature=0.6,
             max_tokens=400
@@ -102,7 +102,7 @@ async def chat(request: ChatRequest):
     except Exception as e:
         error_msg = str(e)
         print(f"Error generating response: {error_msg}")
-        return {"error": f"DeepSeek API Error: {error_msg[:300]}"}
+        return {"error": f"API Error: {error_msg[:300]}"}
     
 if __name__ == "__main__":
     import uvicorn
