@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { ECGFilter } from '../utils/ecgFilters';
-import { calculateRMSSD } from '../utils/ecgAnalysis'
+import { calculateRMSSD } from '../utils/ecgAnalysis';
 
 const PMD_SERVICE_UUID = "fb005c80-02e7-f387-1cad-8acd2d8df0c8";
 const PMD_CONTROL_CHARACTERISTIC_UUID = "fb005c81-02e7-f387-1cad-8acd2d8df0c8";
@@ -23,6 +23,7 @@ interface HeartRateSensorHook {
   heartRate: number | null;
   ecgData: ECGDataPoint[];
   rmssd: number;
+  rrIntervals: number[]; // Added to fix the TypeScript error in page.tsx
   sessionSeconds: number;
   error: string | null;
   qualityError: string | null; 
@@ -75,6 +76,7 @@ export function useHeartRateSensor(): HeartRateSensorHook {
 
   const analyzeSample = useCallback((value: number, timestamp: number) => {
     const threshold = 600; 
+    // Basic peak detection (R-wave) with a 400ms refractory period
     if (value > threshold && (timestamp - lastPeakTimeRef.current) > 400) {
       if (lastPeakTimeRef.current !== 0) {
         const rr = timestamp - lastPeakTimeRef.current;
@@ -125,6 +127,7 @@ export function useHeartRateSensor(): HeartRateSensorHook {
     setIsConnected(false);
     setIsECGStreaming(false);
     setECGData([]);
+    setRrIntervals([]);
     setRmssd(0);
     setQualityError(null);
     filterRef.current.reset();
@@ -138,7 +141,7 @@ export function useHeartRateSensor(): HeartRateSensorHook {
     setSessionSeconds(0);
     timerRef.current = setInterval(() => {
       if (!isPaused) setSessionSeconds(prev => prev + 1);
-    }, 1000); // Updated to 1 second increments for duration
+    }, 1000);
 
     if (!pmdControlCharacteristic || !pmdDataCharacteristic) {
       setIsECGStreaming(true);
@@ -149,7 +152,7 @@ export function useHeartRateSensor(): HeartRateSensorHook {
         const raw = generateSimulatedECG(simulationCounterRef.current);
         const filtered = filterRef.current.process(raw);
         analyzeSample(filtered, currentTime);
-        checkSignalQuality([filtered]); // Check simulation quality
+        checkSignalQuality([filtered]);
         setECGData(prev => [...prev, { timestamp: currentTime, value: filtered }].slice(-1000));
         simulationCounterRef.current++;
       }, 1000 / 130);
@@ -169,7 +172,7 @@ export function useHeartRateSensor(): HeartRateSensorHook {
           const currentTime = Date.now();
           const sampleInterval = 1000 / 130;
           
-          checkSignalQuality(samples); // Check real data quality
+          checkSignalQuality(samples);
 
           const filteredBatch = samples.map((sample, index) => {
             const filtered = filterRef.current.process(sample);
@@ -202,11 +205,11 @@ export function useHeartRateSensor(): HeartRateSensorHook {
 
   return {
     connect, disconnect, startECGStream, stopECGStream, togglePaused,
-    isPaused, heartRate, ecgData, rmssd, sessionSeconds, error, qualityError, isConnected, isECGStreaming
+    isPaused, heartRate, ecgData, rmssd, rrIntervals, sessionSeconds, 
+    error, qualityError, isConnected, isECGStreaming
   };
 }
 
-// --- Helper Functions Remain Unchanged ---
 function parseHeartRate(value: DataView): number {
   const flags = value.getUint8(0);
   return (flags & 0x01) ? value.getUint16(1, true) : value.getUint8(1);

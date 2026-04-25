@@ -3,21 +3,24 @@ import React from 'react';
 import { useHeartRateSensor } from './hooks/useHeartRateSensor';
 import HeartRateMonitor from './components/HeartRateMonitor';
 import ECGChart from './components/ECGChart';
-import { getStressLabel, calculateStressScore } from './utils/ecgAnalysis';
+import { getStressLabel, calculateStressScore, evaluateDataQuality } from './utils/ecgAnalysis';
 import { downloadAndSaveSession } from './utils/exportData';
 
 export default function Home() {
   const {
     connect, disconnect, startECGStream, togglePaused, isPaused,
-    heartRate, ecgData, rmssd, sessionSeconds, isConnected, isECGStreaming, qualityError
+    heartRate, ecgData, rmssd, sessionSeconds, isConnected, isECGStreaming, qualityError,
+    rrIntervals 
   } = useHeartRateSensor();
 
   const stressData = getStressLabel(rmssd);
   const stressScore = calculateStressScore(rmssd);
 
+  // Quality evaluation for live display
+  const currentQuality = evaluateDataQuality(rrIntervals || []);
+
   const statusColor = stressScore <= 30 ? 'emerald' : stressScore <= 70 ? 'amber' : 'rose';
 
-  // --- NEW: Dynamic Description Logic ---
   const getStressDescription = (score: number, currentRmssd: number) => {
     if (currentRmssd === 0) return "Establishing baseline variability...";
     if (score <= 30) return "Your body is relaxed and recovering well.";
@@ -32,10 +35,22 @@ export default function Home() {
   };
 
   const handleSaveAndExport = async () => {
+    const currentIntervals = rrIntervals || [];
+    const quality = evaluateDataQuality(currentIntervals);
+    
+    if (quality.score < 50 && currentIntervals.length > 0) {
+      const proceed = confirm(`Warning: Data quality is ${quality.status} (${quality.score}%). Export anyway?`);
+      if (!proceed) return;
+    }
+  
     await downloadAndSaveSession(ecgData, {
       activity_type: "Rest",
       duration: sessionSeconds,
-      hr_avg: 0, hr_max: 0, avg_hrv: Math.round(rmssd)
+      hr_avg: 0, 
+      hr_max: 0, 
+      avg_hrv: Math.round(rmssd),
+      quality_score: quality.score,
+      quality_status: quality.status
     });
   };
 
@@ -56,7 +71,7 @@ export default function Home() {
 
         {qualityError && isECGStreaming && !isPaused && (
           <div className="bg-rose-950/20 border border-rose-500/20 p-5 rounded-[1.5rem] flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-rose-500 flex items-center justify-center text-white">!</div>
+            <div className="w-10 h-10 rounded-full bg-rose-500 flex items-center justify-center text-white font-bold">!</div>
             <p className="text-rose-300/70 text-sm">{qualityError}</p>
           </div>
         )}
@@ -91,11 +106,19 @@ export default function Home() {
                </div>
             </div>
 
-            {/* METRICS BENTO BLOCK */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* METRICS BENTO BLOCK - Updated to 4 columns */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                <MetricItem label="Session Time" value={formatTime(sessionSeconds)} />
                <MetricItem label="Live HRV" value={rmssd.toFixed(0)} unit="ms" />
                <MetricItem label="Heart Rate" value={heartRate || '--'} unit="bpm" />
+               
+               {/* Signal Quality Metric Item */}
+               <div className="bg-[#5C66A3] p-6 rounded-[1.5rem] shadow-xl">
+                  <p className="text-[#1e293b] text-sm font-black uppercase tracking-wider mb-2">Signal Quality</p>
+                  <p className={`text-3xl font-bold ${currentQuality.score > 75 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {isConnected ? `${currentQuality.score}%` : '--'}
+                  </p>
+               </div>
             </div>
           </div>
 
@@ -135,7 +158,6 @@ export default function Home() {
 
                     <p className={`text-2xl font-bold tracking-tight mb-2 text-${statusColor}-400`}>{stressData.label}</p>
                     
-                    {/* UPDATED: Description paragraph is now dynamic */}
                     <p className="text-white text-xs text-center px-4 leading-relaxed font-medium min-h-[32px]">
                       {getStressDescription(stressScore, rmssd)}
                     </p>

@@ -7,6 +7,8 @@ interface SessionMetrics {
   hr_avg: number;
   hr_max: number;
   avg_hrv: number;
+  quality_score?: number;
+  quality_status?: string;
 }
 
 export async function downloadAndSaveSession(
