@@ -18,8 +18,16 @@ import {
   type SessionType,
   type SessionRecord,
 } from "../types/session";
+import { clearAuthSession, getStoredUser, getToken } from "../lib/auth";
+import {
+  createSession as createApiSession,
+  deleteSession as deleteApiSession,
+  getCurrentUser,
+  getSessions as getApiSessions,
+} from "../lib/apiClient";
 import { formatApproxHrZone } from "../lib/hrZones";
-import { getStressLevel, getStressCellClasses, type StressLevel } from "../lib/stress";
+import { getStressLevel, getStressCellClasses } from "../lib/stress";
+import type { AuthUser } from "../types/user";
 
 type CalendarMode = "weekly" | "monthly" | "yearly";
 
@@ -231,14 +239,46 @@ export default function DashboardPage() {
     "checking" | "disconnected" | "connected" | "unsupported"
   >("checking");
   const [showCalibrationModal, setShowCalibrationModal] = useState(false);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [storageMode, setStorageMode] = useState<"api" | "local">("local");
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  const refreshSessions = useCallback(() => {
-    setSessions(loadSessions());
+  const refreshSessions = useCallback(async () => {
+    const token = getToken();
+    if (!token) {
+      setAuthUser(getStoredUser());
+      setStorageMode("local");
+      setAuthError(null);
+      setSessions(loadSessions());
+      return;
+    }
+
+    try {
+      const [me, sessionResponse] = await Promise.all([
+        getCurrentUser(),
+        getApiSessions(),
+      ]);
+      setAuthUser(me.user);
+      setStorageMode("api");
+      setAuthError(null);
+      setSessions(sessionResponse.sessions);
+    } catch (error) {
+      clearAuthSession();
+      setAuthUser(null);
+      setStorageMode("local");
+      setSessions(loadSessions());
+      setAuthError(
+        error instanceof Error
+          ? `${error.message} Falling back to local demo storage.`
+          : "Unable to reach the API. Falling back to local demo storage."
+      );
+    }
   }, []);
 
   useEffect(() => {
     setMounted(true);
-    refreshSessions();
+    void refreshSessions();
   }, [refreshSessions]);
 
   useEffect(() => {
@@ -314,23 +354,10 @@ export default function DashboardPage() {
     [weekSessions]
   );
 
-  // Stats for the selected calendar period (weekly/monthly/yearly)
-  const statsPeriod = useMemo(
-    () => computePeriodStats(calendarSessions),
-    [calendarSessions]
-  );
-
   const hrvInsight = useMemo(
     () => compareHrvWeekOverWeek(sessions, new Date()),
     [sessions]
   );
-
-  const insightBody = useMemo(() => {
-    if (sessions.length === 0) {
-      return "Log your first session to unlock personalized endurance recommendations based on your heart rate zones and HRV trend.";
-    }
-    return hrvInsight.message;
-  }, [sessions.length, hrvInsight.message]);
 
   const hrvMetrics = useMemo(() => {
     const stats = computePeriodStats(calendarSessions);
@@ -383,7 +410,7 @@ export default function DashboardPage() {
       return "Log your first session to unlock personalized endurance recommendations based on your heart rate zones and HRV trend.";
     }
     
-    let baseMessage = hrvInsight.message;
+    const baseMessage = hrvInsight.message;
     
     // Add personalized recommendation based on current stress level
     const currentStress = getStressLevel(hrvMetrics.averageHrv);
@@ -402,15 +429,44 @@ export default function DashboardPage() {
     return baseMessage + recommendation;
   }, [sessions.length, hrvInsight.message, hrvMetrics.averageHrv]);
 
-  const loadSamples = () => {
-    const merged = [...sampleSessions(), ...loadSessions()];
-    saveSessions(merged);
-    refreshSessions();
+  const loadSamples = async () => {
+    setIsSyncing(true);
+    try {
+      const samples = sampleSessions();
+      if (storageMode === "api" && authUser) {
+        await Promise.all(samples.map((session) => createApiSession(session)));
+        await refreshSessions();
+        return;
+      }
+
+      const merged = [...samples, ...loadSessions()];
+      saveSessions(merged);
+      setSessions(merged);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
-  const handleClear = () => {
-    clearSessions();
-    setSessions([]);
+  const handleClear = async () => {
+    setIsSyncing(true);
+    try {
+      if (storageMode === "api" && authUser) {
+        await Promise.all(sessions.map((session) => deleteApiSession(session.id)));
+      } else {
+        clearSessions();
+      }
+      setSessions([]);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleLogout = () => {
+    clearAuthSession();
+    setAuthUser(null);
+    setStorageMode("local");
+    setAuthError(null);
+    setSessions(loadSessions());
   };
 
   if (!mounted) {
@@ -441,6 +497,8 @@ export default function DashboardPage() {
       return addYears(prev, dir);
     });
   };
+  const authModeLabel =
+    storageMode === "api" ? "API sync enabled" : "Guest mode (local demo storage)";
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F0F9FF] via-white to-slate-50">
@@ -492,15 +550,17 @@ export default function DashboardPage() {
             </Link>
             <button
               type="button"
-              onClick={loadSamples}
+              onClick={() => void loadSamples()}
+              disabled={isSyncing}
               className="inline-flex items-center justify-center rounded-xl border-2 border-slate-200 bg-white text-slate-800 font-medium px-5 py-3.5 hover:bg-slate-50 transition"
             >
-              Load sample data
+              {isSyncing ? "Syncing..." : "Load sample data"}
             </button>
             {sessions.length > 0 && (
               <button
                 type="button"
-                onClick={handleClear}
+                onClick={() => void handleClear()}
+                disabled={isSyncing}
                 className="inline-flex items-center justify-center text-red-600 hover:text-red-700 text-sm font-medium py-2"
               >
                 Clear all sessions
@@ -508,6 +568,50 @@ export default function DashboardPage() {
             )}
           </div>
         </header>
+
+        <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                {authModeLabel}
+              </p>
+              <p className="text-sm text-slate-700">
+                {authUser
+                  ? `Signed in as ${authUser.email}. New sessions will be stored through the backend routes.`
+                  : "Sign in to store sessions through the new API routes. Without an account the dashboard still works in local demo mode."}
+              </p>
+              {authError && (
+                <p className="text-sm text-amber-700">{authError}</p>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {authUser ? (
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  Log out
+                </button>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                  >
+                    Create account
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        </section>
 
         {/* Calibration Status Box */}
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 flex items-start justify-between gap-3">

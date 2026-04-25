@@ -1,303 +1,429 @@
-# Collaboration Status with Antonia
-## Backend Architecture Planning
+# Collaboration Status
+## Dashboard Branch Implementation Log
 
 **Date:** April 25, 2026  
-**Project:** ECG Heart Rate Monitor Dashboard  
-**Repository:** `git@github.com:wlttlwong/Project_3003_ecgsensor.git`
+**Current Branch:** `Dashboard`  
+**Repository:** `https://github.com/wlttlwong/Project_3003_ecgsensor.git`
 
 ---
 
-## Current Repository Branches
+## Purpose of This Document
 
-### Tiffany's Work (You)
-- **`Dashboard`** (current branch) ✅
-  - ✅ ECG Chart visualization
-  - ✅ Heart Rate Monitor UI
-  - ✅ Stress level classification system
-  - ✅ Weekly/monthly stats calculations
-  - ✅ Personalized insights
-  - ✅ Calibration modal
-  - ✅ localStorage-based data persistence (temporary)
-  - **Status:** COMPLETE - Ready for API migration
+This file records the work completed on the `Dashboard` branch during the current implementation session, what was verified, what remains temporary, and what still needs to be done next.
 
-### Antonia's Work (Other Branches)
-- **`ui-visualization-engine`** 📊
-  - Frontend chart components
-  - Same Next.js 14.2.13 stack as yours
-  - No backend code yet
-
-- **`chatbot`** 💬
-  - Chatbot UI/functionality
-  - Same Next.js 14.2.13 stack
-  - No API integration yet
-
-- **`session-state-manager`** 📝
-  - Session state management
-  - Same Next.js 14.2.13 stack
-  - No backend persistence yet
-
-- **`analysis-algorithms`** 📈
-  - Data analysis logic
-  - No backend yet
-
-### Not Yet Started
-- **Backend authentication** ❌
-- **Database schema** ❌
-- **API routes** ❌
-- **User management** ❌
+It is intended to answer:
+- what has already been implemented
+- what was only scaffolded for the demo
+- what other branches contain that still needs to be ported
+- what the next recommended engineering steps are
 
 ---
 
-## Tech Stack (Unified)
+## Work Completed in This Session
 
-Both you and Antonia are using:
-- **Framework:** Next.js 14.2.13 (App Router)
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS + PostCSS
-- **Frontend:** React 18
-- **Charts:** chart.js + react-chartjs-2
-- **Date Utilities:** date-fns
+### 1. Repository Setup and Branch Control
 
-### What's Missing for Backend
-- ❌ Database (PostgreSQL, MongoDB, Firebase, etc.)
-- ❌ ORM/Query Builder (Prisma, Mongoose, etc.)
-- ❌ Authentication library (JWT, NextAuth.js, bcrypt)
-- ❌ API middleware
-- ❌ Password hashing
+Completed:
+- cloned the repository into `C:\Users\th0ma\OneDrive\Desktop\BIOF3003_3003_ecgsensor`
+- fetched the remote `Dashboard` branch
+- switched the working tree to local branch `Dashboard`
+- confirmed later work stayed on `Dashboard`
+
+Reason:
+- all later implementation requested by Tiffany should happen on the `Dashboard` branch, not `main`
 
 ---
 
-## Architecture Recommendation
+### 2. Backend Foundation Added Inside Next.js App Router
 
-### Option A: Monorepo Backend (Recommended for this project)
-```
-Project_3003_ecgsensor/
-├── app/                    # Next.js frontend (your Dashboard branch)
-│   ├── api/               # NEW: Backend API routes
-│   │   ├── auth/          # Authentication endpoints
-│   │   ├── sessions/      # Session CRUD
-│   │   ├── user/          # User profile
-│   │   └── stats/         # Stats calculations
-│   ├── components/        # React components
-│   ├── lib/               # Business logic
-│   └── (dashboard, etc)   # Pages
-├── lib/
-│   ├── db.ts              # NEW: Database connection
-│   └── middleware.ts      # NEW: Auth middleware
-├── prisma/                # NEW: Database schema (if using Prisma)
-│   └── schema.prisma
-└── package.json           # Add backend dependencies
-```
+New API routes were created under `app/api/` so the dashboard is no longer blocked by having zero backend structure.
 
-**Pros:**
-- Single repository (cleaner git history)
-- Shared types between frontend and backend
-- Easy deployment (one Vercel app)
-- Seamless chatbot integration with shared data
+Added routes:
+- `app/api/auth/register/route.ts`
+- `app/api/auth/login/route.ts`
+- `app/api/auth/logout/route.ts`
+- `app/api/auth/me/route.ts`
+- `app/api/user/profile/route.ts`
+- `app/api/sessions/route.ts`
+- `app/api/sessions/[id]/route.ts`
+- `app/api/stats/weekly/route.ts`
+- `app/api/stats/monthly/route.ts`
+- `app/api/stats/summary/route.ts`
+- `app/api/health/route.ts`
 
-**Cons:**
-- Slightly larger package size
+What these routes currently do:
+- register a user
+- log in a user
+- validate the current token
+- create and update a user profile
+- create, list, and delete sessions
+- calculate weekly, monthly, and summary statistics
 
-### Option B: Separate Backend Repository
-- Keep this for frontend
-- Create new backend repository
-- **Not recommended** for this timeline (adds deployment complexity)
+Important note:
+- this is a real API contract inside the app, but it is **not yet backed by PostgreSQL + Prisma**
 
 ---
 
-## Implementation Plan for Backend
+### 3. Authentication Layer Implemented
 
-### Phase 1: Setup (2 hours)
-1. Install dependencies:
-   ```bash
-   npm install bcryptjs jsonwebtoken
-   npm install -D prisma @prisma/client
-   # OR for MongoDB:
-   # npm install mongoose
-   # OR for Firebase:
-   # npm install firebase-admin
-   ```
+Added server-side auth utilities:
+- `app/lib/server/auth.ts`
 
-2. Choose database (coordinate with Antonia):
-   - **PostgreSQL + Prisma** (recommended - best for relational data)
-   - **MongoDB + Mongoose** (flexible schema)
-   - **Firebase** (serverless, real-time)
-   - **Supabase** (PostgreSQL + auth built-in)
+Implemented:
+- password hashing using Node `crypto.scryptSync`
+- password verification
+- JWT-style token creation using HMAC SHA-256
+- token verification
+- bearer token extraction from requests
 
-3. Set up environment variables:
-   ```
-   DATABASE_URL=
-   JWT_SECRET=your-super-secret-key-minimum-32-chars
-   ```
+Why this was done:
+- the branch analysis and migration plan require auth endpoints before sessions and profile APIs become usable
 
-### Phase 2: Database Schema (1-2 hours with Antonia)
-Define tables/collections:
-```sql
--- PostgreSQL Example (Prisma)
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  passwordHash String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  profile   UserProfile?
-  sessions  Session[]
-}
-
-model UserProfile {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  age         Int?
-  goals       String[] // ["weight loss", "endurance", "recovery"]
-  stressTriggers String[] // ["work", "sleep", "caffeine"]
-  maxHeartRate Int?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  user User @relation(fields: [userId], references: [id])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  userId       String
-  startedAt    DateTime
-  endedAt      DateTime
-  sessionType  String   // "walking", "jogging", "cycling", "rest"
-  durationSec  Int
-  avgHr        Int?
-  maxHr        Int?
-  avgHrvMs     Int?
-  stressSummary String  // "Low Stress 🌿"
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
-  user User @relation(fields: [userId], references: [id])
-}
-```
-
-### Phase 3: Authentication API (2 hours)
-- `POST /api/auth/register` - Create account
-- `POST /api/auth/login` - Return JWT token
-- `POST /api/auth/logout` - Invalidate token
-- Auth middleware for protected routes
-
-### Phase 4: Sessions API (2 hours)
-- `GET /api/sessions` - Fetch user sessions
-- `POST /api/sessions` - Create new session
-- `DELETE /api/sessions/:id` - Delete session
-
-### Phase 5: User Profile API (1 hour)
-- `GET /api/user/profile` - Fetch profile
-- `POST /api/user/profile` - Update profile
-
-### Phase 6: Stats API (1-2 hours)
-- `GET /api/stats/weekly` - Weekly stats
-- `GET /api/stats/monthly` - Monthly stats
-
-### Phase 7: Frontend Migration (3-4 hours)
-- Replace localStorage with API calls
-- Create login/register pages
-- Add JWT token management
-- Update dashboard to fetch from API
-
-### Phase 8: Testing & Refinement (2 hours)
+Limitations:
+- this is a lightweight custom implementation for the current branch
+- it is suitable as a temporary app-level auth mechanism
+- final project target is still better served by proper persistent database-backed auth
 
 ---
 
-## Next Steps
+### 4. Temporary Server Data Store Added
 
-### IMMEDIATE (Next 2 hours)
-1. **Schedule sync with Antonia** to decide:
-   - Database platform (PostgreSQL, MongoDB, Firebase, Supabase?)
-   - If using Prisma or native driver
-   - Where to host backend (Vercel, AWS, custom server?)
-   - User profile schema details (age, goals, stress triggers, custom fields?)
+Added:
+- `app/lib/server/store.ts`
 
-2. **Add to Backend Coordination Document:**
-   - Chatbot data access requirements
-   - Real-time data sync needs
-   - Security requirements
+What it does:
+- lazily creates a local JSON database file at runtime under `data/demo-db.json`
+- stores users, profiles, and sessions
+- serializes writes to avoid overlapping file writes
 
-### THEN (Tomorrow - April 26)
-1. Create `api/` folder structure
-2. Install backend dependencies
-3. Set up Prisma (or chosen ORM)
-4. Create database schema
-5. Deploy database
+Why this was done:
+- the project needed working backend behavior immediately
+- no PostgreSQL database URL or Prisma schema was available yet
+- this unblocked auth and API migration work without waiting for infrastructure
 
-### FINALLY (April 26-27)
-1. Implement authentication API
-2. Implement sessions API
-3. Migrate frontend to use API
-4. Test full flow
-5. Deploy to production
+Important limitation:
+- this is only a temporary stand-in
+- this does **not** satisfy the "Real Database (PostgreSQL + Prisma)" requirement from `TEAM_FEATURE_ANALYSIS.md`
+
+Git handling:
+- `data/demo-db.json` is ignored in `.gitignore`
+- the data file is created only when the app runs
 
 ---
 
-## Communication Checklist with Antonia
+### 5. Server Statistics Utilities Added
 
-- [ ] **Database Choice:** Which platform? (PostgreSQL, MongoDB, Firebase, etc.)
-- [ ] **ORM/Driver:** Prisma, Mongoose, native driver, or Firebase Admin SDK?
-- [ ] **Hosting:** Where will backend be deployed? (Vercel, AWS Lambda, custom server?)
-- [ ] **User Profile Fields:** Beyond age/goals/stressTriggers - any other fields?
-- [ ] **Chatbot Integration:** What data does chatbot need from sessions?
-- [ ] **Real-time:** Do we need real-time updates (WebSockets/Firebase) or polling?
-- [ ] **Authentication:** JWT tokens OK? Token expiration time?
-- [ ] **Password Policy:** Min length, complexity requirements?
-- [ ] **Data Retention:** How long to keep old sessions?
-- [ ] **Rate Limiting:** Need API rate limiting for auth endpoints?
+Added:
+- `app/lib/server/stats.ts`
 
----
+Implemented:
+- weekly date range logic
+- generic range filtering for sessions
+- stats calculation for:
+  - session count
+  - total duration in minutes
+  - average heart rate
+  - max heart rate
+  - average HRV
 
-## Current Status Summary
-
-| Component | Status | Owner | Timeline |
-|-----------|--------|-------|----------|
-| Frontend UI | ✅ COMPLETE | Tiffany | Done |
-| Stress System | ✅ COMPLETE | Tiffany | Done |
-| Stats Calc | ✅ COMPLETE | Tiffany | Done |
-| localStorage Persistence | ✅ COMPLETE | Tiffany | Done |
-| **Database** | ❌ TODO | Antonia | **BLOCKER** |
-| **Auth API** | ❌ TODO | Tiffany | After DB |
-| **Sessions API** | ❌ TODO | Tiffany | After DB |
-| **Frontend API Integration** | ❌ TODO | Tiffany | After APIs |
-| **Chatbot Integration** | ❌ TODO | Antonia | After Sessions API |
+Reason:
+- the stats endpoints from the team guideline needed shared calculation logic
 
 ---
 
-## Files Ready for API Integration
+### 6. Frontend Auth and API Client Added
 
-Your codebase is ready to migrate:
+Added client-side helpers:
+- `app/lib/auth.ts`
+- `app/lib/apiClient.ts`
+- `app/types/user.ts`
 
-- ✅ `app/lib/sessions.ts` - All functions marked for API replacement
-- ✅ `app/lib/stress.ts` - Pure logic, no DB dependency
-- ✅ `app/types/session.ts` - Types ready to extend with User/Auth
-- ✅ `app/dashboard/page.tsx` - State management structure prepared
-- ✅ `app/lib/hrZones.ts` - Pure logic, ready for backend
+What these files now handle:
+- storing and clearing auth session in `localStorage`
+- reading auth token for API calls
+- calling register/login/profile/session/stats endpoints
+- clearing auth state on `401 Unauthorized`
 
----
-
-## Decision Matrix
-
-| Decision | Option A | Option B | Option C |
-|----------|----------|----------|----------|
-| **Database** | PostgreSQL (Supabase) | MongoDB | Firebase |
-| **Pros** | ✓ SQL, joins, transactions | ✓ Flexible schema | ✓ No server management |
-| **Cons** | ✗ Need server | ✗ More complex queries | ✗ Firebase lock-in |
-| **Timeline** | 2 hours setup | 2 hours setup | 1 hour setup |
-| **Cost** | $7-50/month | Free-15/month | Free-30/month |
+Why this matters:
+- the dashboard can now call a backend layer instead of only using `localStorage`
 
 ---
 
-## Ready to Proceed?
+### 7. Login and Register Pages Created
 
-1. ✅ Your dashboard is feature-complete
-2. ✅ Tech stack aligned with Antonia
-3. ❌ Database schema needed (Antonia)
-4. ❌ Backend dependencies needed
-5. ❌ API routes needed
+Added:
+- `app/login/page.tsx`
+- `app/register/page.tsx`
 
-**Recommendation:** Schedule 30-min sync with Antonia to finalize database schema, then start backend implementation on April 26.
+Features:
+- registration form with email, password, optional age
+- login form with email and password
+- redirects to `/dashboard` on success
+- error handling for failed submissions
 
-Project demo: **April 28** (3 days away) - Keep MVP scope focused on auth + sessions.
+Reason:
+- `TEAM_FEATURE_ANALYSIS.md` explicitly identified login/register pages as part of the migration path
+
+---
+
+### 8. Dashboard Partially Migrated Away from Pure localStorage
+
+Updated:
+- `app/dashboard/page.tsx`
+
+What changed:
+- dashboard now checks for an auth token
+- if signed in, it loads sessions from the new API
+- if not signed in, it falls back to the existing local demo storage
+- sample session loading can now target either:
+  - API-backed storage when authenticated
+  - local demo storage when unauthenticated
+- clear sessions can now delete via API when authenticated
+- added visible account/storage status section:
+  - API sync enabled
+  - guest mode / local demo storage
+  - sign in / register / logout controls
+
+Why this design was chosen:
+- it keeps the dashboard usable immediately
+- it allows backend migration work to progress without breaking the existing demo flow
+- it avoids blocking the team on database infrastructure before the UI can continue moving
+
+Current state:
+- dashboard is no longer "frontend only"
+- but it is also not yet fully migrated to a real production database stack
+
+---
+
+### 9. Home Page and Metadata Updated
+
+Updated:
+- `app/page.tsx`
+- `app/layout.tsx`
+
+Changes:
+- added entry links for:
+  - sign in
+  - register
+  - dashboard
+- updated metadata title and description to match the ECG project instead of default Next.js boilerplate
+
+---
+
+### 10. Dependency Installation and Project Verification
+
+Performed:
+- `npm install`
+- `npm.cmd run lint`
+- `npm.cmd run build`
+
+Verification result:
+- lint passed
+- production build passed
+
+Notes:
+- `npm run lint` through PowerShell failed initially because `npm.ps1` was blocked by execution policy
+- rerunning with `npm.cmd` solved that
+- initial build inside sandbox failed with Windows `spawn EPERM`
+- rerunning the build outside sandbox succeeded
+
+---
+
+## Files Added or Changed
+
+### New Files
+
+- `app/api/auth/register/route.ts`
+- `app/api/auth/login/route.ts`
+- `app/api/auth/logout/route.ts`
+- `app/api/auth/me/route.ts`
+- `app/api/user/profile/route.ts`
+- `app/api/sessions/route.ts`
+- `app/api/sessions/[id]/route.ts`
+- `app/api/stats/weekly/route.ts`
+- `app/api/stats/monthly/route.ts`
+- `app/api/stats/summary/route.ts`
+- `app/api/health/route.ts`
+- `app/lib/server/auth.ts`
+- `app/lib/server/store.ts`
+- `app/lib/server/stats.ts`
+- `app/lib/auth.ts`
+- `app/lib/apiClient.ts`
+- `app/login/page.tsx`
+- `app/register/page.tsx`
+- `app/types/user.ts`
+
+### Updated Files
+
+- `.gitignore`
+- `app/dashboard/page.tsx`
+- `app/page.tsx`
+- `app/layout.tsx`
+- `package-lock.json`
+
+---
+
+## Branch Review Completed
+
+I also checked the other active remote branches against `origin/Dashboard` to determine what should happen next.
+
+### Result: do not merge those branches directly
+
+Reason:
+- they are based on an older project state
+- a direct merge would try to delete newer dashboard files and documentation
+- they should be treated as feature sources to port selectively, not as branches to merge wholesale
+
+### What each branch still contains that may matter
+
+#### `session-state-manager`
+Useful item:
+- pause/resume logic in `app/hooks/useHeartRateSensor.ts`
+
+Recommendation:
+- port only the pause/resume logic into current `Dashboard`
+
+#### `ui-visualization-engine`
+Useful items:
+- `app/utils/ecgFilters.ts`
+- `app/utils/signalQuality.ts`
+- `app/utils/exportData.ts`
+- some ECG chart/live processing changes
+
+Recommendation:
+- selectively port the signal-processing utilities into current `Dashboard`
+
+#### `ending-session`
+Useful items:
+- session summary components
+- stress/session recap UI
+
+Recommendation:
+- port only if the team wants post-session review in the final demo
+
+#### `feedback-control`
+Useful items:
+- high-stress notifications
+- feedback UI around session guidance
+
+Recommendation:
+- lower priority than sensor state and ECG filtering
+
+#### `chatbot`
+Useful item:
+- `backend/main.py` FastAPI chatbot service exists
+
+Problem:
+- frontend integration in that branch still depends on older assumptions and hardcoded context
+- it is not ready for direct merge into current `Dashboard`
+
+Recommendation:
+- integrate later after app-side data model is stabilized
+
+---
+
+## What Has Not Been Done Yet
+
+The following items are still incomplete:
+
+### 1. Real Database
+Not done:
+- PostgreSQL setup
+- Prisma schema
+- migrations
+- `DATABASE_URL` integration
+
+Impact:
+- current backend behavior is temporary and local to the machine running the app
+
+### 2. Real Persistent Production Storage
+Not done:
+- deployment-safe storage
+- shared team-accessible database
+- production persistence model
+
+### 3. Full Sensor/Signal Feature Porting
+Not done:
+- pause/resume from `session-state-manager`
+- ECG filtering integration from `ui-visualization-engine`
+- signal quality detection integration
+- export flow integration
+
+### 4. Chatbot Integration
+Not done:
+- connecting the dashboard API to Antonia's FastAPI chatbot service
+- sending authenticated profile/session/stats context from current branch state
+
+### 5. End Session and Feedback Features
+Not done:
+- selective port of `SessionSummary`
+- selective port of feedback and high-stress notifications
+
+---
+
+## Current Technical Status
+
+### Completed
+- Dashboard branch is active and verified
+- API route structure exists
+- auth flow exists
+- profile/session/stats endpoints exist
+- login/register pages exist
+- dashboard can use API-backed storage
+- build and lint both pass
+
+### Temporary
+- backend data is stored in a runtime JSON file
+- auth is custom lightweight app auth
+- no Prisma
+- no PostgreSQL
+
+### Missing
+- real database layer
+- selective feature ports from other branches
+- chatbot integration using real dashboard data
+
+---
+
+## Recommended Next Steps
+
+### Recommended order
+
+1. Port `session-state-manager` pause/resume logic into `app/hooks/useHeartRateSensor.ts`
+2. Port `ui-visualization-engine` ECG filtering and signal-quality utilities
+3. Decide whether `ending-session` is needed for the demo, then port selectively
+4. Replace temporary JSON store with PostgreSQL + Prisma when database access is available
+5. Integrate Antonia's chatbot backend using real API data
+
+### Why this order
+
+- pause/resume and ECG filtering improve the live monitoring experience immediately
+- these are more useful for the demo than database work that cannot be fully finished without infrastructure
+- real database migration should happen after the schema and connection details are available
+- chatbot should come after the app-side session/profile/stat data model is stable
+
+---
+
+## Final Summary
+
+In this session, the `Dashboard` branch was moved from:
+- frontend dashboard with `localStorage` only
+
+to:
+- frontend dashboard
+- backend API routes inside Next.js
+- auth flow
+- profile/session/stats endpoints
+- login/register pages
+- dashboard API integration with local fallback
+- verified lint/build status
+
+This is meaningful backend progress, but it is still an intermediate state.
+
+The most important unfinished item is still:
+- **Real Database (PostgreSQL + Prisma)**
+
+The most important code-porting work still pending from other branches is:
+- **pause/resume logic**
+- **ECG filtering and signal-quality utilities**
+
