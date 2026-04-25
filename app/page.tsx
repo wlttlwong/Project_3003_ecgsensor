@@ -17,6 +17,14 @@ export default function Home() {
 
   const statusColor = stressScore <= 30 ? 'emerald' : stressScore <= 70 ? 'amber' : 'rose';
 
+  // --- NEW: Dynamic Description Logic ---
+  const getStressDescription = (score: number, currentRmssd: number) => {
+    if (currentRmssd === 0) return "Establishing baseline variability...";
+    if (score <= 30) return "Your body is relaxed and recovering well.";
+    if (score <= 70) return "Moderate physiological activity detected. Balance rest and action.";
+    return "High strain detected. Try slow, deep breaths to reset your system.";
+  };
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -24,7 +32,6 @@ export default function Home() {
   };
 
   const handleSaveAndExport = async () => {
-    // prepare payload...
     await downloadAndSaveSession(ecgData, {
       activity_type: "Rest",
       duration: sessionSeconds,
@@ -57,7 +64,7 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
             
-            {/* --- UPDATED: ECG LIVE FEED BLOCK (#5C66A3) --- */}
+            {/* ECG LIVE FEED BLOCK */}
             <div className="bg-[#5C66A3] p-8 rounded-[2rem] shadow-2xl relative overflow-hidden">
                <div className="flex justify-between items-center mb-8">
                   <h2 className="text-xl font-bold text-white">ECG Live Feed</h2>
@@ -75,7 +82,6 @@ export default function Home() {
                   </div>
                </div>
 
-               {/* Chart background stays dark for contrast */}
                <div className="h-80 w-full bg-[#020617] rounded-[1.5rem] relative overflow-hidden shadow-inner border border-slate-900/40">
                   {isECGStreaming ? (
                     <ECGChart ecgData={ecgData} isPaused={isPaused} />
@@ -85,7 +91,7 @@ export default function Home() {
                </div>
             </div>
 
-            {/* --- UPDATED: METRICS BENTO BLOCK (#5C66A3) --- */}
+            {/* METRICS BENTO BLOCK */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                <MetricItem label="Session Time" value={formatTime(sessionSeconds)} />
                <MetricItem label="Live HRV" value={rmssd.toFixed(0)} unit="ms" />
@@ -95,7 +101,6 @@ export default function Home() {
 
           {/* Right Column: Stress Insight */}
           <div className="space-y-8">
-            {/* --- UPDATED: STRESS INSIGHT BLOCK (#5C66A3) --- */}
             <div className="bg-[#5C66A3] p-8 rounded-[2rem] text-white shadow-2xl relative overflow-hidden">
                <div className="relative z-10">
                   <div className="flex justify-between items-start mb-6">
@@ -111,7 +116,6 @@ export default function Home() {
                   </div>
                   
                   <div className="flex flex-col items-center py-4">
-                    {/* Gauge ring stays dark navy background */}
                     <div className="relative flex items-center justify-center w-40 h-40 mb-6">
                       <svg className="w-full h-full -rotate-90">
                         <circle cx="80" cy="80" r="70" fill="transparent" stroke="currentColor" strokeWidth="12" className="text-[#1e293b]" />
@@ -130,13 +134,14 @@ export default function Home() {
                     </div>
 
                     <p className={`text-2xl font-bold tracking-tight mb-2 text-${statusColor}-400`}>{stressData.label}</p>
-                    <p className="text-white text-xs text-center px-4 leading-relaxed font-medium">
-                      {rmssd === 0 ? "Establishing baseline variability..." : "Your body is relaxed and recovering well."}
+                    
+                    {/* UPDATED: Description paragraph is now dynamic */}
+                    <p className="text-white text-xs text-center px-4 leading-relaxed font-medium min-h-[32px]">
+                      {getStressDescription(stressScore, rmssd)}
                     </p>
                   </div>
 
                   <div className="mt-8 pt-8 border-t border-white/20">
-                    {/* Save button background stays dark navy contrast */}
                     <button onClick={handleSaveAndExport} disabled={!isECGStreaming} className="w-full bg-[#1e293b] hover:opacity-90 disabled:opacity-30 text-white py-4 rounded-full font-bold text-lg shadow-xl">
                       Save & Export Session
                     </button>
@@ -145,7 +150,6 @@ export default function Home() {
                <div className={`absolute -bottom-20 -right-20 w-64 h-64 bg-${statusColor}-500/10 rounded-full blur-3xl transition-colors duration-1000`}></div>
             </div>
 
-            {/* --- UPDATED: TIPS BLOCK (#5C66A3 with transparency) --- */}
             <div className="bg-[#5C66A3]/70 p-8 rounded-[2rem] border border-white/10 text-sm text-white">
                <h3 className="font-bold text-lg mb-6">Quick Tips</h3>
                <ul className="space-y-4 font-medium">
