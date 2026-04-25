@@ -10,6 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@openrouter/sdk": "^0.12.19",
     "chart.js": "^4.4.4",
     "date-fns": "^4.1.0",
     "geist": "^1.7.0",

@@ -35,7 +35,7 @@ export default function Home() {
   const [lastSessionDuration, setLastSessionDuration] = useState<number>(0);
   const [lastAvgHRV, setLastAvgHRV] = useState<number>(0);
   const [lastAvgHR, setLastAvgHR] = useState<number>(0);
-  const [lastStressLevel, setLastStressLevel] = useState<number>(0);
+  const [lastStressScore, setLastStressScore] = useState<number>(0);
 
   const {
     connect, disconnect, startECGStream, stopECGStream,
@@ -57,10 +57,10 @@ export default function Home() {
     const savedTime = localStorage.getItem("lastSessionEndTime");
     if (savedTime) {
       setLastSessionEndTime(savedTime);
-      setLastSessionDuration(parseInt(localStorage.getItem("lastSessionDuration") || "0"));
-      setLastAvgHRV(parseInt(localStorage.getItem("lastAvgHRV") || "0"));
-      setLastAvgHR(parseInt(localStorage.getItem("lastAvgHR") || "0"));
-      setLastStressLevel(parseInt(localStorage.getItem("lastStressLevel") || "0"));
+      setLastSessionDuration(parseInt(localStorage.getItem("duration") || "0"));
+      setLastAvgHRV(parseInt(localStorage.getItem("avgHRV") || "0"));
+      setLastAvgHR(parseInt(localStorage.getItem("avgHR") || "0"));
+      setLastStressScore(parseInt(localStorage.getItem("stressScore") || "0"));
     }
   }, []);
 
@@ -72,8 +72,11 @@ export default function Home() {
     return { label: 'HIGH', color: 'text-red-400', stroke: '#f87171' };
   };
 
+  // Validation for Profile
   const handleSaveProfile = () => {
-    if (!fName || !fAge || !fHeight || !fTrigger || !fGoal) return alert("Please fill all fields");
+    if (!fName.trim() || !fAge.trim() || !fHeight.trim() || !fTrigger.trim() || !fGoal.trim()) {
+      return alert("Please fill all fields");
+    }
     setUser({
       username: fName,
       age: fAge,
@@ -81,6 +84,7 @@ export default function Home() {
       stressTrigger: fTrigger,
       goals: fGoal
     });
+    setIsProfileOpen(false);
   };
 
   const handleStartSession = () => {
@@ -119,6 +123,10 @@ export default function Home() {
               className="w-full bg-[#2A3A6E] p-4 rounded-2xl outline-none border border-white/5 focus:border-blue-500 transition-all" 
               placeholder="Your age" type="number" value={fAge} onChange={(e) => setFAge(e.target.value)} 
             />
+            <input 
+              className="w-full bg-[#2A3A6E] p-4 rounded-2xl outline-none border border-white/5 focus:border-blue-500 transition-all" 
+              placeholder="Your height in cm" type="number" value={fHeight} onChange={(e) => setFHeight(e.target.value)}
+            />
             <select 
               className="w-full bg-[#2A3A6E] p-4 rounded-2xl outline-none border border-white/5"
               value={fTrigger} onChange={(e) => setFTrigger(e.target.value)}
@@ -153,28 +161,33 @@ export default function Home() {
   // --- MAIN DASHBOARD ---
   return (
     <div className="min-h-screen bg-[#0A0F2C] text-white font-sans pb-20">
+      
+      {/* Navigation Bar */}
       <nav className="flex items-center justify-between px-12 py-8">
         <div className="text-lg font-bold tracking-tight">Stress Detection Application</div>
-        <div className="flex gap-12 text-sm font-bold tracking-widest">
+        <div className="flex items-center gap-12">
+          <div className='flex gap-12 text-sm font-bold tracking-widest'>
           <Link href="/" className="text-blue-400">LIVE MONITORING</Link>
           <Link href="/history" className="hover:text-blue-400 transition-colors">HISTORY</Link>
-          <Link href="/chatbot" className="hover:text-blue-400 transition-colors">CHATBOT</Link>
-          
-          {/* Updated FAQ */}
+          </div>
+    
+          {/* Profile setting button */}
           <button
             onClick={() => setIsProfileOpen(true)}
-            className='bg-white/10 p-2 px-4 rounded-full border border-white/20 hover:bg-white/20 transition-all'
+            className='bg-white/10 p-2 px-6 rounded-full border border-white/20 hover:bg-white/20 transition-all text-xs font-bold tracking-widest'
           >
             PROFILE SETTINGS
           </button>
         </div>
       </nav>
 
+      {/* Welcome */}
       <div className="max-w-6xl mx-auto px-6 text-center">
         <h1 className="text-[120px] font-bold leading-none mt-12 mb-10 tracking-tighter">
           Hi, {username}
         </h1>
         
+        {/* Start session button */}
         <div className="flex flex-col items-center gap-4 mb-20">
           <button 
             onClick={handleStartSession}
@@ -235,6 +248,7 @@ export default function Home() {
           </div>
         )}
 
+        {/* Recent Session Summary */}
         {!isECGStreaming && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
             <div className="lg:col-span-8 bg-[#5C66A3]/80 backdrop-blur-xl rounded-[40px] p-10 shadow-2xl flex flex-col justify-between min-h-[450px]">
@@ -251,18 +265,18 @@ export default function Home() {
                 <svg className="w-80 h-40" viewBox="0 0 100 50">
                   <path d="M 10 45 A 40 40 0 0 1 90 45" fill="none" stroke="white" strokeWidth="2" strokeOpacity="0.1" strokeLinecap="round" />
                   <path
-                    d="M 10 45 A 40 40 0 0 1 90 45" fill="none" stroke={getStressStatus(lastStressLevel).stroke}
+                    d="M 10 45 A 40 40 0 0 1 90 45" fill="none" stroke={getStressStatus(lastStressScore).stroke}
                     strokeWidth="3" strokeLinecap="round" strokeDasharray="126"
-                    strokeDashoffset={126 - (126 * lastStressLevel) / 100}
+                    strokeDashoffset={126 - (126 * lastStressScore) / 100}
                     className="transition-all duration-1000 ease-out"
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-end pb-4">
                   <span className="text-[10px] font-bold tracking-[0.2em] opacity-50 uppercase">Overall Stress Level</span>
-                  <span className={`text-6xl font-black tracking-tighter ${getStressStatus(lastStressLevel).color}`}>
-                    {getStressStatus(lastStressLevel).label}
+                  <span className={`text-6xl font-black tracking-tighter ${getStressStatus(lastStressScore).color}`}>
+                    {getStressStatus(lastStressScore).label}
                   </span>
-                  <span className="text-xl font-bold mt-1">({lastStressLevel}<span className="opacity-40">/100</span>)</span>
+                  <span className="text-xl font-bold mt-1">({lastStressScore}<span className="opacity-40">/100</span>)</span>
                 </div>
               </div>
 
