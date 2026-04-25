@@ -3,25 +3,33 @@ import React, { useState, useEffect } from "react";
 import BreathingPrompt from "./BreathingPrompt";
 import StretchingPrompt from "./StretchingPrompt";
 
-const LiveFeedback: React.FC = () => {
+interface LiveFeedbackProps {
+  avgHR: number;
+  avgHRV: number;
+}
+
+const LiveFeedback: React.FC<LiveFeedbackProps> = ({ avgHR, avgHRV }) => {
+  // Define stress condition (adjust thresholds as needed)
+  const isHighStress = avgHR > 100 && avgHRV < 50;
+
   // Flow states
-  const [showAlert, setShowAlert] = useState(true);   // initial stress alert
-  const [showMenu, setShowMenu] = useState(false);    // choices menu
+  const [showAlert, setShowAlert] = useState(isHighStress);
+  const [showMenu, setShowMenu] = useState(false);
   const [showBreathing, setShowBreathing] = useState(false);
   const [showStretching, setShowStretching] = useState(false);
 
   // Play sound when alert is shown
   useEffect(() => {
-    if (showAlert) {
+    if (showAlert && isHighStress) {
       const audio = new Audio("/sounds/alert.mp3"); // place file in public/sounds/
       audio.play().catch((err) => console.error("Audio play failed:", err));
     }
-  }, [showAlert]);
+  }, [showAlert, isHighStress]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#0A0F2C] font-sans text-white">
       {/* Stress Alert Window */}
-      {showAlert && (
+      {showAlert && isHighStress && (
         <div className="bg-[#0A0F2C] shadow-lg rounded-lg p-6 max-w-md w-full text-center">
           <h2 className="text-4xl font-extrabold mb-2">Stress levels are high!</h2>
           <p className="text-lg mb-6">It’s time to take a break.</p>
