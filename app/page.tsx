@@ -319,36 +319,36 @@ export default function Home() {
 
         {/* Profile modal */}
         {isProfileOpen && (
-          <div className='fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-6'>
-            <div className='bg-[#1E2A5E] w-full max-w-md rounded-[30px] p-8 border border-white/10 shadow-2xl'>
+          <div className='fixed inset-0 bg-black/50 backdrop-blur-md z-[100] flex items-center justify-center p-6'>
+            <div className='bg-[#1E2A5E]/90 w-full max-w-md rounded-[30px] p-8 border border-white/10 shadow-2xl'>
               <h3 className='text-2xl font-bold mb-6'>User Profile</h3>
               <div className='space-y-4 text-left'>
                 <div className='text-sm opacity-50 mb-2 font-bold uppercase tracking-wider'>Username: {username}</div>
 
                 <div className='space-y-1'>
                   <label className='text-[10px] uppercase font-bold opacity-40 ml-2'>Age</label>
-                  <input className='w-full bg-white/5 p-4 rounded-xl border border-white/10 focus:border-blue-500 outline-none' value={fAge} onChange={(e) => setFAge(e.target.value)} />
+                  <input className='w-full bg-white/5 p-4 rounded-xl border border-white/10 focus:border-[#7580c9] outline-none' value={fAge} onChange={(e) => setFAge(e.target.value)} />
                 </div>
 
                 <div className='space-y-1'>
                   <label className='text-[10px] uppercase font-bold opacity-40 ml-2'>Height (cm)</label>
-                  <input className='w-full bg-white/5 p-4 rounded-xl border border-white/10 focus:border-blue-500 outline-none' value={fHeight} onChange={(e) => setFHeight(e.target.value)} />
+                  <input className='w-full bg-white/5 p-4 rounded-xl border border-white/10 focus:border-[#7580c9] outline-none' value={fHeight} onChange={(e) => setFHeight(e.target.value)} />
                 </div>
 
                 <div className='space-y-1'>
                   <label className='text-[10px] uppercase font-bold opacity-40 ml-2'>Main Stress Trigger</label>
-                  <input className='w-full bg-white/5 p-4 rounded-xl border border-white/10 focus:border-blue-500 outline-none' value={fTrigger} onChange={(e) => setFTrigger(e.target.value)} />
+                  <input className='w-full bg-white/5 p-4 rounded-xl border border-white/10 focus:border-[#7580c9] outline-none' value={fTrigger} onChange={(e) => setFTrigger(e.target.value)} />
                 </div>
 
                 <div className='space-y-1'>
                   <label className='text-[10px] uppercase font-bold opacity-40 ml-2'>Main Goal</label>
-                  <input className='w-full bg-white/5 p-4 rounded-xl border border-white/10 focus:border-blue-500 outline-none' value={fGoal} onChange={(e) => setFGoal(e.target.value)} />
+                  <input className='w-full bg-white/5 p-4 rounded-xl border border-white/10 focus:border-[#7580c9] outline-none' value={fGoal} onChange={(e) => setFGoal(e.target.value)} />
                 </div>
 
                 <div className='flex gap-4 pt-4'>
                   <button
                     onClick={() => { handleSaveProfile(); setIsProfileOpen(false); }}
-                    className='flex-1 py-4 bg-blue-600 rounded-xl font-bold hover:bg-blue-500 transition-all'
+                    className='flex-1 py-4 bg-[#8c92bf] rounded-xl font-bold hover:bg-[#7580c9] transition-all'
                   >
                     Save Changes
                   </button>
@@ -367,6 +367,5 @@ export default function Home() {
         />
       </div>
     </div>
-  
   );
 }

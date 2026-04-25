@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useHeartRateSensor } from '../hooks/useHeartRateSensor';
+import { useUserStore } from '../store/userStore';
 
 const Chatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -10,6 +11,7 @@ const Chatbot: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Get real sensor data from your hook
+  const { username, age, height, stressTrigger, goals } = useUserStore();
   const sensorData = useHeartRateSensor();
 
   // Optional: Get last session data from localStorage (for better context)
@@ -23,7 +25,7 @@ const Chatbot: React.FC = () => {
         duration: localStorage.getItem("lastSessionDuration"),
         avgHRV: localStorage.getItem("lastAvgHRV"),
         avgHR: localStorage.getItem("lastAvgHR"),
-        stressLevel: localStorage.getItem("lastStressLevel"),
+        stressLevel: localStorage.getItem("lastStressScore"),
       });
     }
   }, []);
@@ -38,23 +40,24 @@ const Chatbot: React.FC = () => {
     // Prepare rich context for your ECG/HRV stress app
     const context = {
       userProfile: { 
-        age: 25, 
-        stressTriggers: ["work deadlines"], 
-        goals: "Release stress" 
+        username,
+        age, 
+        height,
+        stressTriggers: [stressTrigger], 
+        goals
       },
       currentLiveData: {
-        heartRate: sensorData.heartRate || 78,           // Real current HR from wearable
+        heartRate: sensorData.heartRate || 0,           // Real current HR from wearable
         isConnected: sensorData.isConnected,
         isECGStreaming: sensorData.isECGStreaming,
-        // You can add ecgData.length if useful
       },
       lastSession: lastSession || {
-        avgHR: 78,
-        avgHRV: 50,
-        stressLevel: "moderate",
-        durationMinutes: 15
+        avgHR: 0,
+        avgHRV: 0,
+        stressLevel: "N/A",
+        durationMinutes: 0
       },
-      recentInsight: "Your average HRV has increased 12% this week. Keep up the good work!"
+      recentInsight: "Reviewing your latest trends..."
     };
 
     try {
@@ -83,8 +86,6 @@ const Chatbot: React.FC = () => {
 
   const quickButtons = [
     "Explain my current HRV",
-    "Why is my stress high right now?",
-    "What breathing exercise should I do?",
     "How is my stress trend this week?"
   ];
 
@@ -93,43 +94,43 @@ const Chatbot: React.FC = () => {
       {/* Floating Chat Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-3xl z-50 transition-all active:scale-95"
+        className="fixed bottom-6 right-6 bg-[#9ea7db] hover:bg-[#c8c9cc] text-white w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-3xl z-50 transition-all active:scale-95"
       >
         💬
       </button>
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 w-96 h-[520px] bg-white border border-gray-300 rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden">
+        <div className="fixed bottom-24 right-6 w-96 h-[520px] bg-[#0A0F2C]/50 border border-white/10 rounded-[30px] shadow-2xl flex flex-col z-50 overflow-hidden backdrop-blur-xl">
           {/* Header */}
-          <div className="bg-blue-600 text-white p-4 flex justify-between items-center rounded-t-2xl">
+          <div className="bg-[#1E2A5E]/50 text-white p-5 flex justify-between items-center border-b border-white/10">
             <div>
-              <p className="font-bold">StressGuard AI</p>
-              <p className="text-xs opacity-90">Your ECG-based Stress Coach</p>
+              <p className="font-bold tracking-tight text-lg">StressGuard AI</p>
+              <p className="text-[10px] uppercase tracking-widest opacity-60 font-bold">Your ECG-based Stress Coach</p>
             </div>
             <button 
               onClick={() => setIsOpen(false)} 
-              className="text-2xl leading-none hover:text-gray-200"
+              className="text-xl hover:opacity-60"
             >
               ✕
             </button>
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-50">
+          <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-[#0A0F2C]/50">
             {messages.length === 0 && (
-              <p className="text-gray-500 text-center py-8">
-                Hi! Ask me anything about your HRV, current stress, or get personalized advice.
+              <p className="text-white/40 text-sm text-center py-8">
+                Hi {username}! I'm your stress coach. Ask me anything about your HRV or stress-release techniques.
               </p>
             )}
 
             {messages.map((msg, index) => (
               <div 
                 key={index} 
-                className={`max-w-[85%] p-3.5 rounded-2xl ${
+                className={`max-w-[85%] p-4 rounded-2xl text-sm font-medium leading-relaxed ${
                   msg.role === 'user' 
-                    ? 'bg-blue-600 text-white ml-auto' 
-                    : 'bg-white border border-gray-200 text-gray-800'
+                    ? 'bg-[#6a72a6] text-white ml-auto' 
+                    : 'bg-[#d4d5d9] border border-gray-200 text-gray-800'
                 }`}
               >
                 {msg.content}
@@ -137,39 +138,41 @@ const Chatbot: React.FC = () => {
             ))}
 
             {isLoading && (
-              <p className="text-blue-600 italic pl-2">StressGuard is thinking...</p>
+              <p className="text-[#6a72a6] italic pl-2 animate-pulse">StressGuard is thinking...</p>
             )}
           </div>
 
           {/* Quick Reply Buttons */}
-          <div className="p-3 border-t bg-white flex flex-wrap gap-2">
+          {messages.length === 0 && (
+            <div className="p-3 border-t border-white/20 bg-white/10 bg-[#1E2A5E]/20 flex flex-wrap gap-2">
             {quickButtons.map((btn, i) => (
               <button
                 key={i}
                 onClick={() => sendMessage(btn)}
                 disabled={isLoading}
-                className="text-xs px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors disabled:opacity-50"
+                className="text-[10px] font-bold uppercase tracking-wider px-3 py-2 bg-[#868cb5]/50 hover:bg-white/10 border border-white/10 rounded-full text-white/70 transition-all"
               >
                 {btn}
               </button>
             ))}
           </div>
-
+         )}
+        
           {/* Input Area */}
-          <div className="p-4 border-t bg-white flex gap-2">
+          <div className="p-4 border-t border-white/20 bg-[#1E2A5E]/50 flex gap-2">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendMessage(input)}
-              placeholder="Ask about your HRV or stress..."
-              className="flex-1 border border-gray-300 rounded-full px-5 py-3 focus:outline-none focus:border-blue-500 text-gray-800"
+              placeholder="Type message..."
+              className="flex-1 bg-[#0A0F2C] text-white rounded-xl px-4 py-3 outline-none border border-white/5 focus:border-[#7c8bcf] text-sm"
               disabled={isLoading}
             />
             <button
               onClick={() => sendMessage(input)}
               disabled={isLoading || !input.trim()}
-              className="bg-blue-600 text-white px-6 rounded-full disabled:opacity-50 hover:bg-blue-700 transition"
+              className="bg-[#9298b3] text-white px-5 rounded-xl font-bold text-sm disabled:opacity-50 hover:bg-[#7c8bcf] transition"
             >
               Send
             </button>
