@@ -8,28 +8,73 @@ import HeartRateMonitor from './components/HeartRateMonitor';
 import ECGChart from './components/ECGChart';
 import FAQModal, { FAQ_DATABASE } from './components/FAQModal';
 
+// --- SUB-COMPONENT: GAUGE STRESS INDICATOR ---
+const StressGauge = ({ score }: { score: number }) => {
+  const getStatus = (s: number) => {
+    if (!s || s === 0) return { label: 'N/A', color: 'text-white/40', stroke: 'rgba(255,255,255,0.1)' };
+    if (s < 40) return { label: 'Low', color: 'text-green-400', stroke: '#4ade80' };
+    if (s < 70) return { label: 'Moderate', color: 'text-yellow-400', stroke: '#facc15' };
+    return { label: 'High', color: 'text-red-500', stroke: '#ef4444' };
+  };
+
+  const status = getStatus(score);
+  const radius = 80;
+  const circumference = Math.PI * radius; 
+  const dashOffset = circumference - (Math.min(score, 100) / 100) * circumference;
+
+  return (
+    <div className="flex flex-col items-center justify-center w-full py-4">
+      <div className="relative w-72 h-40 flex items-center justify-center overflow-hidden">
+        <svg className="w-full h-full" viewBox="0 0 200 120">
+          <path
+            d="M 20 100 A 80 80 0 0 1 180 100"
+            fill="none"
+            stroke="rgba(255,255,255,0.1)"
+            strokeWidth="12"
+            strokeLinecap="round"
+          />
+          <path
+            d="M 20 100 A 80 80 0 0 1 180 100"
+            fill="none"
+            stroke={status.stroke}
+            strokeWidth="12"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={dashOffset}
+            className="transition-all duration-1000 ease-out"
+          />
+        </svg>
+
+        <div className="absolute top-12 flex flex-col items-center">
+          <span className="text-7xl font-bold tracking-tighter">{score || 0}</span>
+          <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest mt-1">Stress Level</p>
+          <span className={`text-2xl font-bold mt-1 ${status.color}`}>
+            {status.label}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function Home() {
   const { username, age, height, stressTrigger, goals, setUser } = useUserStore();
   const [isHydrated, setIsHydrated] = useState(false);
-
-  // Requirement 1: Splash screen state
   const [showSplash, setShowSplash] = useState(true);
 
-  // Form states for Onboarding/Settings
+  // Form states
   const [fName, setFName] = useState("");
   const [fAge, setFAge] = useState("");
   const [fHeight, setFHeight] = useState("");
   const [fTrigger, setFTrigger] = useState("");
   const [fGoal, setFGoal] = useState("");
 
-  // Requirement 3: Custom input toggles
   const [isCustomTrigger, setIsCustomTrigger] = useState(false);
   const [isCustomGoal, setIsCustomGoal] = useState(false);
-
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [selectedFaqId, setSelectedFaqId] = useState<string | null>(null);
 
-  // Label Logic (RESTORED)
+  // Label Logic
   const [selectedLabel, setSelectedLabel] = useState<string>("None");
   const [isLabelModalOpen, setIsLabelModalOpen] = useState(false);
   const [customLabel, setCustomLabel] = useState("");
@@ -66,13 +111,6 @@ export default function Home() {
     }
   }, [username, age, height, stressTrigger, goals]);
 
-  const getStressStatus = (score: number) => {
-    if (score === 0) return { label: 'N/A', color: 'text-white/20', stroke: 'white' };
-    if (score < 40) return { label: 'LOW', color: 'text-green-400', stroke: '#4ade80' };
-    if (score < 70) return { label: 'MODERATE', color: 'text-yellow-400', stroke: '#facc15' };
-    return { label: 'HIGH', color: 'text-red-400', stroke: '#f87171' };
-  };
-
   const handleSaveProfile = () => {
     if (!fName.trim() || !fAge.trim() || !fHeight.trim() || !fTrigger.trim() || !fGoal.trim()) {
       return alert("Please fill all fields");
@@ -98,7 +136,7 @@ export default function Home() {
 
   if (!isHydrated) return null;
 
-  // --- REQUIREMENT 1: SPLASH SCREEN ---
+  // SPLASH SCREEN
   if (showSplash && !username) {
     return (
       <div className='min-h-screen bg-[#0A0F2C] text-white flex flex-col items-center justify-center p-6 animate-in fade-in duration-1000'>
@@ -115,7 +153,7 @@ export default function Home() {
     );
   }
 
-  // --- REQUIREMENT 3 & 4: ONBOARDING ---
+  // ONBOARDING
   if (!username) {
     return (
       <div className="min-h-screen bg-[#0A0F2C] text-white flex items-center justify-center p-6">
@@ -181,7 +219,7 @@ export default function Home() {
     );
   }
 
-  // --- MAIN DASHBOARD ---
+  // MAIN DASHBOARD
   return (
     <div className="min-h-screen bg-[#0A0F2C] text-white font-sans pb-20">
       <nav className="flex items-center justify-between px-12 py-8">
@@ -207,7 +245,6 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Label Modal (RESTORED) */}
         {isLabelModalOpen && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 text-left">
             <div className="bg-[#1E2A5E] w-full max-w-sm rounded-[30px] p-8 border border-white/10 shadow-2xl">
@@ -225,7 +262,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Live Streaming View (RESTORED) */}
         {isECGStreaming && (
           <div className="mb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <HeartRateMonitor isConnected={isConnected} isECGStreaming={isECGStreaming} connect={connect} disconnect={disconnect} startECGStream={startECGStream} stopECGStream={stopECGStream} heartRate={heartRate} error={error} />
@@ -244,15 +280,21 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Requirement 2: Clean Fonts for Metrics */}
-              <div className="grid grid-cols-2 gap-4 pt-8 border-t border-white/10">
+              {/* CENTERED GAUGE INDICATOR */}
+              <StressGauge score={lastStressScore} />
+
+              <div className="grid grid-cols-3 gap-4 pt-8 border-t border-white/10">
                 <div className="text-center border-r border-white/10">
                   <p className="text-[10px] font-bold opacity-50 uppercase tracking-widest mb-1">Average HRV</p>
-                  <p className="text-6xl font-black tracking-tighter">{lastAvgHRV} <span className="text-xs font-black uppercase tracking-widest ml-1">ms</span></p>
+                  <p className="text-5xl font-black tracking-tighter">{lastAvgHRV} <span className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-40">ms</span></p>
+                </div>
+                <div className="text-center border-r border-white/10">
+                  <p className="text-[10px] font-bold opacity-50 uppercase tracking-widest mb-1">Duration</p>
+                  <p className="text-5xl font-black tracking-tighter">{lastSessionDuration} <span className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-40">min</span></p>
                 </div>
                 <div className="text-center">
                   <p className="text-[10px] font-bold opacity-50 uppercase tracking-widest mb-1">Avg Heart Rate</p>
-                  <p className="text-6xl font-black tracking-tighter">{lastAvgHR} <span className="text-xs font-black uppercase tracking-widest ml-1">bpm</span></p>
+                  <p className="text-5xl font-black tracking-tighter">{lastAvgHR} <span className="text-[10px] font-black uppercase tracking-widest ml-1 opacity-40">bpm</span></p>
                 </div>
               </div>
             </div>
@@ -271,7 +313,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Profile Settings Modal */}
         {isProfileOpen && (
           <div className='fixed inset-0 bg-black/50 backdrop-blur-md z-[100] flex items-center justify-center p-6'>
             <div className='bg-[#1E2A5E] w-full max-w-md rounded-[40px] p-10 border border-white/10 shadow-2xl'>
@@ -279,14 +320,14 @@ export default function Home() {
               <div className='space-y-6 text-left'>
                 <div className='space-y-1'>
                   <label className='text-[10px] uppercase font-bold opacity-40 ml-2 tracking-widest'>Age</label>
-                  <input type="number" className='w-full bg-[#0A0F2C] p-4 rounded-xl border border-white/5 focus:border-blue-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none' value={fAge} onChange={(e) => {
+                  <input type="number" className='w-full bg-[#0A0F2C] p-4 rounded-xl border border-white/5 focus:border-blue-500 outline-none [appearance:textfield]' value={fAge} onChange={(e) => {
                     const val = parseInt(e.target.value);
                     if (e.target.value === "") setFAge(""); else if (val >= 0 && val <= 99) setFAge(val.toString());
                   }} />
                 </div>
                 <div className='space-y-1'>
                   <label className='text-[10px] uppercase font-bold opacity-40 ml-2 tracking-widest'>Height (cm)</label>
-                  <input type="number" className='w-full bg-[#0A0F2C] p-4 rounded-xl border border-white/5 focus:border-blue-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none' value={fHeight} onChange={(e) => {
+                  <input type="number" className='w-full bg-[#0A0F2C] p-4 rounded-xl border border-white/5 focus:border-blue-500 outline-none [appearance:textfield]' value={fHeight} onChange={(e) => {
                     const val = parseInt(e.target.value);
                     if (e.target.value === "") setFHeight(""); else if (val >= 0 && val <= 200) setFHeight(val.toString());
                   }} />
@@ -309,16 +350,9 @@ export default function Home() {
                   </button>
                 </div>
 
-                {/* Reset button */}
                 <button
                   onClick={() => {
-                    setUser({
-                      username: "",
-                      age: "",
-                      height: "",
-                      stressTrigger: "",
-                      goals: ""
-                    });
+                    setUser({ username: "", age: "", height: "", stressTrigger: "", goals: "" });
                     localStorage.removeItem("lastSessionEndTime");
                     setShowSplash(true);
                     setIsProfileOpen(false);
@@ -327,7 +361,6 @@ export default function Home() {
                 >
                   Reset All Data & Logout
                 </button>
-
               </div>
             </div>
           </div>
