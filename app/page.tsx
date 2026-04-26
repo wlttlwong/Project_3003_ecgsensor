@@ -1,9 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import ECGChart from "./components/ECGChart";
+import LiveFeedback from "./components/LiveFeedback";
+import SessionSummary from "./components/SessionSummary";
 import { useHeartRateSensor } from "./hooks/useHeartRateSensor";
+import { createSession } from "./lib/apiClient";
+import { appendSession } from "./lib/sessions";
+import type { SessionRecord } from "./types/session";
 import {
   calculateStressScore,
   evaluateDataQuality,
@@ -11,26 +17,52 @@ import {
 } from "./utils/ecgAnalysis";
 import { downloadAndSaveSession } from "./utils/exportData";
 
+type SummaryData = {
+  duration: number;
+  avgHR: number;
+  maxHR: number;
+  avgHRV: number;
+  stressScore: number;
+  stressLevel: "Low" | "Medium" | "High" | "Critical";
+  notes: string;
+  breathingCount: number;
+  stretchingCount: number;
+};
+
 export default function Home() {
   const {
     connect,
     disconnect,
     startECGStream,
+    stopECGStream,
     togglePaused,
     isPaused,
     heartRate,
     ecgData,
     rmssd,
     sessionSeconds,
+    error,
     isConnected,
     isECGStreaming,
     qualityError,
     rrIntervals,
   } = useHeartRateSensor();
 
+  const [sessionStartedAt, setSessionStartedAt] = useState<Date | null>(null);
+  const [heartRateSamples, setHeartRateSamples] = useState<number[]>([]);
+  const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
+
+  useEffect(() => {
+    if (isECGStreaming && heartRate != null) {
+      setHeartRateSamples((samples) => [...samples, heartRate].slice(-1800));
+    }
+  }, [heartRate, isECGStreaming]);
+
   const stressData = getStressLabel(rmssd);
   const stressScore = calculateStressScore(rmssd);
   const currentQuality = evaluateDataQuality(rrIntervals || []);
+  const avgHeartRate = average(heartRateSamples) ?? heartRate ?? 0;
+  const maxHeartRate = heartRateSamples.length > 0 ? Math.max(...heartRateSamples) : heartRate ?? 0;
   const statusTone =
     stressScore <= 30
       ? {
@@ -50,6 +82,14 @@ export default function Home() {
             glow: "bg-rose-500/10",
           };
 
+  const stressLevel = stressScore <= 30
+    ? "Low"
+    : stressScore <= 70
+      ? "Medium"
+      : stressScore <= 90
+        ? "High"
+        : "Critical";
+
   const getStressDescription = (score: number, currentRmssd: number) => {
     if (currentRmssd === 0) return "Establishing baseline variability...";
     if (score <= 30) return "Your body is relaxed and recovering well.";
@@ -61,6 +101,55 @@ export default function Home() {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const handleStartMonitoring = async () => {
+    setSummaryData(null);
+    setHeartRateSamples([]);
+    setSessionStartedAt(new Date());
+    await startECGStream();
+  };
+
+  const buildSessionRecord = (endedAt: Date): SessionRecord => {
+    const startedAt = sessionStartedAt ?? new Date(endedAt.getTime() - sessionSeconds * 1000);
+    return {
+      id: crypto.randomUUID(),
+      startedAt: startedAt.toISOString(),
+      endedAt: endedAt.toISOString(),
+      sessionType: "rest",
+      durationSec: sessionSeconds,
+      maxHr: maxHeartRate > 0 ? Math.round(maxHeartRate) : null,
+      avgHr: avgHeartRate > 0 ? Math.round(avgHeartRate) : null,
+      avgHrvMs: rmssd > 0 ? Math.round(rmssd) : null,
+      stressSummary: `${stressLevel} stress`,
+    };
+  };
+
+  const saveSessionRecord = async (record: SessionRecord) => {
+    appendSession(record);
+    try {
+      await createSession(record);
+    } catch (err) {
+      console.warn("Session saved locally but was not synced to the authenticated API.", err);
+    }
+  };
+
+  const handleStopRecording = async () => {
+    const endedAt = new Date();
+    const record = buildSessionRecord(endedAt);
+    await stopECGStream();
+    await saveSessionRecord(record);
+    setSummaryData({
+      duration: Math.max(1, Math.round(record.durationSec / 60)),
+      avgHR: record.avgHr ?? 0,
+      maxHR: record.maxHr ?? 0,
+      avgHRV: record.avgHrvMs ?? 0,
+      stressScore,
+      stressLevel,
+      notes: "",
+      breathingCount: 0,
+      stretchingCount: 0,
+    });
   };
 
   const handleSaveAndExport = async () => {
@@ -77,13 +166,43 @@ export default function Home() {
     await downloadAndSaveSession(ecgData, {
       activity_type: "Rest",
       duration: sessionSeconds,
-      hr_avg: heartRate ?? 0,
-      hr_max: heartRate ?? 0,
+      hr_avg: Math.round(avgHeartRate),
+      hr_max: Math.round(maxHeartRate),
       avg_hrv: Math.round(rmssd),
       quality_score: quality.score,
       quality_status: quality.status,
     });
   };
+
+  if (summaryData) {
+    return (
+      <div className="min-h-screen bg-[#0A0F2C] text-white">
+        <SessionSummary
+          duration={summaryData.duration}
+          avgHR={summaryData.avgHR}
+          maxHR={summaryData.maxHR}
+          avgHRV={summaryData.avgHRV}
+          stressScore={summaryData.stressScore}
+          stressLevel={summaryData.stressLevel}
+          notes={summaryData.notes}
+          breathingCount={summaryData.breathingCount}
+          stretchingCount={summaryData.stretchingCount}
+          onBack={() => setSummaryData(null)}
+        />
+        <div className="mx-auto flex max-w-4xl justify-center gap-3 pb-10">
+          <Link href="/dashboard" className="rounded-full bg-[#5C66A3] px-6 py-3 font-bold">
+            View Dashboard
+          </Link>
+          <button
+            onClick={() => setSummaryData(null)}
+            className="rounded-full bg-[#1e293b] px-6 py-3 font-bold"
+          >
+            Back to Live Monitoring
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0A0F2C] p-6 font-sans text-slate-200 md:p-12">
@@ -123,6 +242,12 @@ export default function Home() {
           </div>
         </div>
 
+        {error && (
+          <div className="rounded-[1.5rem] border border-rose-500/20 bg-rose-950/20 p-5 text-sm text-rose-300">
+            {error}
+          </div>
+        )}
+
         {qualityError && isECGStreaming && !isPaused && (
           <div className="flex items-center gap-4 rounded-[1.5rem] border border-rose-500/20 bg-rose-950/20 p-5">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-500 font-bold text-white">
@@ -135,20 +260,28 @@ export default function Home() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="space-y-8 lg:col-span-2">
             <div className="relative overflow-hidden rounded-[2rem] bg-[#5C66A3] p-8 shadow-2xl">
-              <div className="mb-8 flex items-center justify-between">
+              <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <h2 className="text-xl font-bold text-white">ECG Live Feed</h2>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   {isECGStreaming && (
-                    <button
-                      onClick={togglePaused}
-                      className="rounded-xl bg-slate-100 px-6 py-2 text-sm font-bold text-slate-700"
-                    >
-                      {isPaused ? "Resume" : "Pause"}
-                    </button>
+                    <>
+                      <button
+                        onClick={togglePaused}
+                        className="rounded-xl bg-slate-100 px-6 py-2 text-sm font-bold text-slate-700"
+                      >
+                        {isPaused ? "Resume" : "Pause"}
+                      </button>
+                      <button
+                        onClick={handleStopRecording}
+                        className="rounded-xl bg-rose-500 px-6 py-2 text-sm font-bold text-white"
+                      >
+                        Stop Recording
+                      </button>
+                    </>
                   )}
                   {!isECGStreaming && (
                     <button
-                      onClick={startECGStream}
+                      onClick={handleStartMonitoring}
                       disabled={!isConnected}
                       className={`rounded-xl px-6 py-2 text-sm font-bold transition-all ${
                         isConnected ? "bg-[#10b981] text-white" : "bg-slate-300 text-slate-600"
@@ -188,6 +321,10 @@ export default function Home() {
                 </p>
               </div>
             </div>
+
+            {isECGStreaming && (
+              <LiveFeedback avgHR={avgHeartRate} avgHRV={rmssd} />
+            )}
           </div>
 
           <div className="space-y-8">
@@ -253,7 +390,7 @@ export default function Home() {
                     disabled={!isECGStreaming}
                     className="w-full rounded-full bg-[#1e293b] py-4 text-lg font-bold text-white shadow-xl hover:opacity-90 disabled:opacity-30"
                   >
-                    Save & Export Session
+                    Export CSV
                   </button>
                 </div>
               </div>
@@ -278,6 +415,11 @@ export default function Home() {
       </div>
     </div>
   );
+}
+
+function average(values: number[]): number | null {
+  if (values.length === 0) return null;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
 function MetricItem({
