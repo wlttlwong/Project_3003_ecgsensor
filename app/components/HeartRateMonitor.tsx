@@ -1,5 +1,6 @@
 "use client";
-import React, { useState, useEffect } from "react";
+
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 interface MonitorControlsProps {
   isConnected: boolean;
@@ -7,11 +8,11 @@ interface MonitorControlsProps {
   connect: () => Promise<void>;
   disconnect: () => void;
   startECGStream: () => Promise<void>;
-  stopECGStream: () => void;
+  stopECGStream: () => void | Promise<void>;
   error: string | null;
   heartRate: number | null;
   ecgData?: { timestamp: number }[];
-  onStressUpdate?: (level: string) => void;   // NEW callback
+  onStressUpdate?: (level: string) => void;
 }
 
 const HeartRateMonitor: React.FC<MonitorControlsProps> = ({
@@ -28,27 +29,47 @@ const HeartRateMonitor: React.FC<MonitorControlsProps> = ({
 }) => {
   const [sessionStart, setSessionStart] = useState<number | null>(null);
   const [sessionDuration, setSessionDuration] = useState<number>(0);
-
   const [hrValues, setHrValues] = useState<number[]>([]);
   const [avgHR, setAvgHR] = useState<number>(0);
   const [maxHR, setMaxHR] = useState<number>(0);
   const [avgHRV, setAvgHRV] = useState<number>(0);
   const [stressLevel, setStressLevel] = useState<string>("Normal");
-
   const [notes, setNotes] = useState<string>("");
+  const [showBreathingPrompt, setShowBreathingPrompt] = useState(false);
+  const criticalHandledRef = useRef(false);
 
   function startSession() {
     setSessionStart(Date.now());
+    setSessionDuration(0);
     setHrValues([]);
+    criticalHandledRef.current = false;
   }
 
-  function endSession() {
-    if (sessionStart) {
-      const duration = Math.floor((Date.now() - sessionStart) / 1000);
-      setSessionDuration(duration);
-    }
-    stopECGStream();
-  }
+  const saveSessionLog = useCallback(
+    (duration: number) => {
+      if (typeof window === "undefined") return;
+      const logEntry = {
+        duration,
+        avgHR,
+        maxHR,
+        avgHRV,
+        stressLevel,
+        notes,
+        timestamp: new Date().toISOString(),
+      };
+      const logs = JSON.parse(window.localStorage.getItem("sessionLogs") || "[]");
+      logs.push(logEntry);
+      window.localStorage.setItem("sessionLogs", JSON.stringify(logs));
+    },
+    [avgHR, avgHRV, maxHR, notes, stressLevel]
+  );
+
+  const endSession = useCallback(async () => {
+    const duration = sessionStart ? Math.floor((Date.now() - sessionStart) / 1000) : sessionDuration;
+    setSessionDuration(duration);
+    saveSessionLog(duration);
+    await stopECGStream();
+  }, [saveSessionLog, sessionDuration, sessionStart, stopECGStream]);
 
   useEffect(() => {
     if (heartRate) {
@@ -71,27 +92,40 @@ const HeartRateMonitor: React.FC<MonitorControlsProps> = ({
         const avg = validRR.reduce((a, b) => a + b, 0) / validRR.length;
         setAvgHRV(avg);
 
-        let level = "Normal";
+        let level = "Low";
         if (avg < 20) level = "Critical";
         else if (avg < 50) level = "High";
         else if (avg < 80) level = "Medium";
-        else level = "Low";
 
         setStressLevel(level);
-        if (onStressUpdate) onStressUpdate(level);   // 🔹 send update up
+        onStressUpdate?.(level);
       }
     }
   }, [ecgData, onStressUpdate]);
 
+  useEffect(() => {
+    if (stressLevel !== "Critical") {
+      setShowBreathingPrompt(false);
+      criticalHandledRef.current = false;
+      return;
+    }
+
+    if (criticalHandledRef.current) return;
+    criticalHandledRef.current = true;
+    alert("Stress level rising!");
+    const beep = new Audio("/sounds/alert.mp3");
+    beep.play().catch((err) => console.error("Audio play failed:", err));
+    setShowBreathingPrompt(true);
+    void endSession();
+  }, [endSession, stressLevel]);
+
   return (
-    <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+    <div className="mx-auto max-w-4xl overflow-hidden rounded-xl bg-white shadow-lg">
       <div className="p-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">
-          Heart Rate & ECG Monitor
-        </h1>
+        <h1 className="mb-6 text-3xl font-bold text-gray-800">Heart Rate & ECG Monitor</h1>
 
         {error && (
-          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
+          <div className="mb-6 border-l-4 border-red-500 bg-red-100 p-4 text-red-700" role="alert">
             <p className="font-bold">Error</p>
             <p>{error}</p>
           </div>
@@ -100,20 +134,20 @@ const HeartRateMonitor: React.FC<MonitorControlsProps> = ({
         {!isConnected ? (
           <button
             onClick={connect}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-full"
+            className="rounded-full bg-blue-500 px-4 py-2 font-bold text-white transition duration-300 ease-in-out hover:scale-105 hover:bg-blue-600"
           >
             Connect to Polar H10
           </button>
         ) : (
           <div className="space-y-6">
-            <div className="bg-gray-100 rounded-lg p-4 flex items-center justify-between">
+            <div className="flex items-center justify-between rounded-lg bg-gray-100 p-4">
               <span className="text-lg font-semibold text-gray-700">Heart Rate:</span>
               <span className="text-2xl font-bold text-blue-600">
                 {heartRate ? `${heartRate} BPM` : "Waiting for data..."}
               </span>
             </div>
 
-            <div className="bg-gray-100 rounded-lg p-4 mt-4">
+            <div className="mt-4 rounded-lg bg-gray-100 p-4 text-gray-800">
               <p>Average HR: {avgHR.toFixed(1)} BPM</p>
               <p>Max HR: {maxHR} BPM</p>
               <p>Average HRV: {avgHRV.toFixed(1)} ms</p>
@@ -125,13 +159,26 @@ const HeartRateMonitor: React.FC<MonitorControlsProps> = ({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Add notes for this session..."
-              className="w-full border rounded p-2 mt-4"
+              className="mt-4 w-full rounded border p-2 text-gray-900"
             />
 
-            <div className="flex space-x-4 mt-4">
+            {showBreathingPrompt && (
+              <div className="mt-4 rounded bg-blue-100 p-4 text-gray-800">
+                <p className="font-semibold">Try 4-7-8 breathing:</p>
+                <p>Inhale for 4s -&gt; Hold for 7s -&gt; Exhale for 8s</p>
+                <button
+                  onClick={() => setShowBreathingPrompt(false)}
+                  className="mt-2 rounded bg-gray-500 px-4 py-2 text-white"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-4">
               <button
                 onClick={disconnect}
-                className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full"
+                className="rounded-full bg-red-500 px-4 py-2 font-bold text-white transition duration-300 ease-in-out hover:scale-105 hover:bg-red-600"
               >
                 Disconnect
               </button>
@@ -139,32 +186,32 @@ const HeartRateMonitor: React.FC<MonitorControlsProps> = ({
               {!isECGStreaming ? (
                 <button
                   onClick={startECGStream}
-                  className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-full"
+                  className="rounded-full bg-green-500 px-4 py-2 font-bold text-white transition duration-300 ease-in-out hover:scale-105 hover:bg-green-600"
                 >
                   Start ECG Stream
                 </button>
               ) : (
                 <button
                   onClick={stopECGStream}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-full"
+                  className="rounded-full bg-yellow-500 px-4 py-2 font-bold text-white transition duration-300 ease-in-out hover:scale-105 hover:bg-yellow-600"
                 >
                   Stop ECG Stream
                 </button>
               )}
             </div>
 
-            <div className="flex space-x-4 mt-4">
-              <button
-                onClick={startSession}
-                className="bg-green-600 text-white px-4 py-2 rounded"
-              >
+            <div className="mt-4 flex flex-wrap gap-4">
+              <button onClick={startSession} className="rounded bg-green-600 px-4 py-2 text-white">
                 Start Session
               </button>
               <button
-                onClick={endSession}
-                className="bg-gray-600 text-white px-4 py-2 rounded"
+                onClick={async () => {
+                  await endSession();
+                  window.location.href = "/dashboard";
+                }}
+                className="rounded bg-gray-600 px-4 py-2 text-white"
               >
-                End Session
+                End Session & Back to Dashboard
               </button>
             </div>
           </div>
