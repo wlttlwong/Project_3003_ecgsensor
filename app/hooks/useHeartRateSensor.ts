@@ -116,8 +116,14 @@ export function useHeartRateSensor(): HeartRateSensorHook {
         if (val) setHeartRate(parseHeartRate(val));
       });
       const pmdService = await server?.getPrimaryService(PMD_SERVICE_UUID);
-      setPmdControlCharacteristic(await pmdService?.getCharacteristic(PMD_CONTROL_CHARACTERISTIC_UUID) as any);
-      setPmdDataCharacteristic(await pmdService?.getCharacteristic(PMD_DATA_CHARACTERISTIC_UUID) as any);
+      const pmdControl = pmdService
+        ? await pmdService.getCharacteristic(PMD_CONTROL_CHARACTERISTIC_UUID)
+        : null;
+      const pmdData = pmdService
+        ? await pmdService.getCharacteristic(PMD_DATA_CHARACTERISTIC_UUID)
+        : null;
+      setPmdControlCharacteristic(pmdControl);
+      setPmdDataCharacteristic(pmdData);
       setIsConnected(true);
       setError(null);
     } catch (err) {

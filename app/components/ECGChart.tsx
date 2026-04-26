@@ -2,6 +2,7 @@
 import React, { useMemo, useRef } from 'react';
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js';
+import type { ChartData } from 'chart.js';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -16,7 +17,7 @@ interface ECGChartProps {
 }      
 
 const ECGChart: React.FC<ECGChartProps> = ({ ecgData, isPaused }) => {
-  const lastDataRef = useRef<any>(null);
+  const lastDataRef = useRef<ChartData<'line', number[], number> | null>(null);
 
   const ecgChartData = useMemo(() => {
     if (isPaused && lastDataRef.current) {
