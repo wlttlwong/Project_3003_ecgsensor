@@ -10,6 +10,7 @@ interface FAQItem {
     headerColor: string;
     icon: string;
     description: string;
+    imageUrl?: string;
     graphData?: { label: string; values: string[]};
     references: string[];
 }
