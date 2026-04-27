@@ -24,6 +24,13 @@ function displayActivityLabel(type: SessionType): string {
   return ACTIVITY_DISPLAY_LABELS[type] ?? type;
 }
 
+function getCustomActivitiesStorageKey(): string {
+  const user = getStoredUser();
+  return user?.id
+    ? `custom_activities:${user.id}`
+    : "custom_activities:guest";
+}
+
 // --- SUB-COMPONENT: GAUGE STRESS INDICATOR ---
 const StressGauge = ({ score }: { score: number }) => {
   const getStatus = (s: number) => {
@@ -195,6 +202,36 @@ export default function Home() {
       cancelled = true;
     };
   }, [searchParams, setUser]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem(getCustomActivitiesStorageKey());
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (!Array.isArray(parsed)) return;
+      const custom = parsed
+        .filter((v): v is string => typeof v === "string")
+        .map((v) => v.trim())
+        .filter(
+          (v, idx, arr) =>
+            v.length > 0 &&
+            !SESSION_TYPES.includes(v as (typeof SESSION_TYPES)[number]) &&
+            arr.findIndex((x) => x.toLowerCase() === v.toLowerCase()) === idx
+        );
+      setCustomActivities(custom);
+    } catch {
+      // Ignore invalid cached value.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      getCustomActivitiesStorageKey(),
+      JSON.stringify(customActivities)
+    );
+  }, [customActivities]);
 
   const handleSaveProfile = async () => {
     if (!fName.trim() || !fAge.trim() || !fHeight.trim() || !fTrigger.trim() || !fGoal.trim()) {
