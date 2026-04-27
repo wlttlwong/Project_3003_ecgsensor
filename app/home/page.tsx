@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useHeartRateSensor } from '../hooks/useHeartRateSensor';
 import { useUserStore } from '../store/userStore';
 import FAQModal, { FAQ_DATABASE } from '../components/FAQModal';
+import Chatbot from '../components/Chatbot';
 
 // --- SUB-COMPONENT: GAUGE STRESS INDICATOR ---
 const StressGauge = ({ score }: { score: number }) => {
@@ -102,7 +103,7 @@ export default function Home() {
 
       const token = localStorage.getItem("token");
       if (!token) return;
-      
+
       try {
         const res = await fetch('/api/sessions?limit=1', {
           headers: { 'Authorization': `Bearer ${token}` }
