@@ -96,6 +96,7 @@ const Chatbot: React.FC = () => {
 
   return (
     <>
+    {/* Floating toggle button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="fixed bottom-6 right-6 bg-[#9ea7db] hover:bg-[#c8c9cc] text-white w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-3xl z-50 transition-all active:scale-95"
