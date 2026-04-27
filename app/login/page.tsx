@@ -30,10 +30,10 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 px-4 py-12 text-white">
+    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-[#afb9e3]/30 px-4 py-12 text-white">
       <div className="mx-auto max-w-md rounded-3xl border border-white/10 bg-white/10 p-8 shadow-2xl backdrop-blur">
         <div className="space-y-3">
-          <Link href="/" className="text-sm text-emerald-300 hover:text-emerald-200">
+          <Link href="/" className="text-sm text-[#8191d4] hover:text-[#afb9e3]">
             Back to home
           </Link>
           <h1 className="text-3xl font-bold tracking-tight">Sign in</h1>
@@ -49,7 +49,7 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="w-full rounded-2xl border border-white/15 bg-slate-950/60 px-4 py-3 text-white outline-none transition focus:border-emerald-400"
+              className="w-full rounded-2xl border border-white/15 bg-slate-950/60 px-4 py-3 text-white outline-none transition focus:border-[#8191d4]"
               placeholder="you@example.com"
               required
             />
@@ -61,7 +61,7 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-2xl border border-white/15 bg-slate-950/60 px-4 py-3 text-white outline-none transition focus:border-emerald-400"
+              className="w-full rounded-2xl border border-white/15 bg-slate-950/60 px-4 py-3 text-white outline-none transition focus:border-[#8191d4]"
               placeholder="At least 8 characters"
               required
             />
@@ -76,7 +76,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-2xl bg-emerald-500 px-4 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-2xl bg-[#8191d4] px-4 py-3 font-semibold text-slate-950 transition hover:bg-[#afb9e3] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting ? "Signing in..." : "Sign in"}
           </button>
@@ -84,7 +84,7 @@ export default function LoginPage() {
 
         <p className="mt-6 text-sm text-slate-300">
           Need an account?{" "}
-          <Link href="/register" className="font-medium text-emerald-300 hover:text-emerald-200">
+          <Link href="/register" className="font-medium text-[#8191d4] hover:text-[#afb9e3]">
             Create one
           </Link>
         </p>

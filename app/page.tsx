@@ -280,7 +280,7 @@ export default function Home() {
         <div className="flex flex-col gap-4 sm:flex-row">
           <Link
             href="/login"
-            className='px-12 py-5 bg-blue-600 hover:bg-blue-500 rounded-full text-xl font-bold transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-blue-900/40 text-center'
+            className='px-12 py-5 bg-[#495dad] hover:bg-[#7384c7] rounded-full text-xl font-bold transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-blue-900/40 text-center'
           >
             Log In
           </Link>
