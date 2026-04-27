@@ -10,7 +10,6 @@ export default function RegisterPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [age, setAge] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -20,7 +19,7 @@ export default function RegisterPage() {
     setError(null);
 
     try {
-      await register(email, password, age ? Number(age) : undefined);
+      await register(email, password);
       sessionStorage.setItem("onboardingAfterRegister", "1");
       router.push("/?onboarding=1");
     } catch (err) {
@@ -67,18 +66,6 @@ export default function RegisterPage() {
               className="w-full rounded-2xl border border-white/15 bg-slate-950/60 px-4 py-3 text-white outline-none transition focus:border-emerald-400"
               placeholder="At least 8 characters"
               required
-            />
-          </label>
-
-          <label className="block space-y-2">
-            <span className="text-sm font-medium text-slate-200">Age (optional)</span>
-            <input
-              type="number"
-              min="1"
-              value={age}
-              onChange={(event) => setAge(event.target.value)}
-              className="w-full rounded-2xl border border-white/15 bg-slate-950/60 px-4 py-3 text-white outline-none transition focus:border-emerald-400"
-              placeholder="25"
             />
           </label>
 
