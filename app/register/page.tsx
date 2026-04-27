@@ -30,59 +30,59 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-amber-100 via-white to-emerald-100 px-4 py-12">
-      <div className="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
+    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 px-4 py-12 text-white">
+      <div className="mx-auto max-w-md rounded-3xl border border-white/10 bg-white/10 p-8 shadow-2xl backdrop-blur">
         <div className="space-y-3">
-          <Link href="/session" className="text-sm text-slate-500 hover:text-slate-700">
+          <Link href="/session" className="text-sm text-emerald-300 hover:text-emerald-200">
             Back to live monitor
           </Link>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-3xl font-bold tracking-tight text-white">
             Create account
           </h1>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-300">
             Set up API-backed storage for sessions, stats, and future chatbot context.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-4">
           <label className="block space-y-2">
-            <span className="text-sm font-medium text-slate-700">Email</span>
+            <span className="text-sm font-medium text-slate-200">Email</span>
             <input
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500"
+              className="w-full rounded-2xl border border-white/15 bg-slate-950/60 px-4 py-3 text-white outline-none transition focus:border-emerald-400"
               placeholder="you@example.com"
               required
             />
           </label>
 
           <label className="block space-y-2">
-            <span className="text-sm font-medium text-slate-700">Password</span>
+            <span className="text-sm font-medium text-slate-200">Password</span>
             <input
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500"
+              className="w-full rounded-2xl border border-white/15 bg-slate-950/60 px-4 py-3 text-white outline-none transition focus:border-emerald-400"
               placeholder="At least 8 characters"
               required
             />
           </label>
 
           <label className="block space-y-2">
-            <span className="text-sm font-medium text-slate-700">Age (optional)</span>
+            <span className="text-sm font-medium text-slate-200">Age (optional)</span>
             <input
               type="number"
               min="1"
               value={age}
               onChange={(event) => setAge(event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500"
+              className="w-full rounded-2xl border border-white/15 bg-slate-950/60 px-4 py-3 text-white outline-none transition focus:border-emerald-400"
               placeholder="25"
             />
           </label>
 
           {error && (
-            <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <p className="rounded-2xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
               {error}
             </p>
           )}
@@ -90,15 +90,15 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-2xl bg-slate-900 px-4 py-3 font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-2xl bg-emerald-500 px-4 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting ? "Creating account..." : "Create account"}
           </button>
         </form>
 
-        <p className="mt-6 text-sm text-slate-600">
+        <p className="mt-6 text-sm text-slate-300">
           Already registered?{" "}
-          <Link href="/login" className="font-medium text-emerald-700 hover:text-emerald-800">
+          <Link href="/login" className="font-medium text-emerald-300 hover:text-emerald-200">
             Sign in
           </Link>
         </p>
