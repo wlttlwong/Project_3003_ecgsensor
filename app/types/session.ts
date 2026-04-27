@@ -28,7 +28,7 @@ export interface SessionRecord {
   /** Short fitness summary line for the table (not a clinical diagnosis) */
   stressSummary: string;
   stressScore: number;
-  stressLevel: "Low" | "Medium" | "High";
+  stressLevel: "Low" | "Medium" | "High" | "Critical";
 }
 
 export interface PeriodStats {

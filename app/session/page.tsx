@@ -23,7 +23,7 @@ type SummaryData = {
   maxHR: number;
   avgHRV: number;
   stressScore: number;
-  stressLevel: "Low" | "Medium" | "High";
+  stressLevel: "Low" | "Medium" | "High" | "Critical";
   notes: string;
   breathingCount: number;
   stretchingCount: number;
@@ -216,16 +216,10 @@ export default function Home() {
           </div>
           <div className="flex flex-wrap gap-3">
             <Link
-              href="/login"
-              className="rounded-full bg-[#1e293b] px-5 py-3 font-bold text-white shadow-lg transition-all hover:opacity-90"
+              href="/"
+              className="inline-flex items-center justify-center rounded-xl border border-slate-500 bg-[#1e293b] px-5 py-3.5 font-medium text-slate-100 transition hover:bg-slate-700"
             >
-              Sign in
-            </Link>
-            <Link
-              href="/register"
-              className="rounded-full bg-[#1e293b] px-5 py-3 font-bold text-white shadow-lg transition-all hover:opacity-90"
-            >
-              Register
+              Back to main page
             </Link>
             <Link
               href="/dashboard"
