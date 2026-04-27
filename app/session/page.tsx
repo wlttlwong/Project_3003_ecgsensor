@@ -23,7 +23,7 @@ type SummaryData = {
   maxHR: number;
   avgHRV: number;
   stressScore: number;
-  stressLevel: "Low" | "Medium" | "High" | "Critical";
+  stressLevel: "Low" | "Medium" | "High";
   notes: string;
   breathingCount: number;
   stretchingCount: number;
@@ -121,6 +121,8 @@ export default function Home() {
       maxHr: maxHeartRate > 0 ? Math.round(maxHeartRate) : null,
       avgHr: avgHeartRate > 0 ? Math.round(avgHeartRate) : null,
       avgHrvMs: rmssd > 0 ? Math.round(rmssd) : null,
+      stressScore: stressScore,
+      stressLevel: stressLevel,
       stressSummary: `${stressLevel} stress`,
     };
   };

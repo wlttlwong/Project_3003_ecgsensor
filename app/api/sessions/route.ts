@@ -16,6 +16,8 @@ function toPublicSession(session: StoredSession) {
     avgHr: session.avgHr,
     maxHr: session.maxHr,
     avgHrvMs: session.avgHrvMs,
+    stressScore: session.stressScore,
+    stressLevel: session.stressLevel,
     stressSummary: session.stressSummary,
   };
 }
@@ -102,6 +104,8 @@ export async function POST(request: NextRequest) {
       avgHr?: unknown;
       maxHr?: unknown;
       avgHrvMs?: unknown;
+      stressScore?: unknown;
+      stressLevel?: unknown;
       stressSummary?: unknown;
     };
 
@@ -135,6 +139,7 @@ export async function POST(request: NextRequest) {
       maxHr: parseOptionalNumber(body.maxHr),
       avgHrvMs: parseOptionalNumber(body.avgHrvMs),
       stressScore: parseOptionalNumber(body.stressScore) || 0,
+      stressLevel: (body.stressLevel as any) || "Low",
       stressSummary: body.stressSummary.trim(),
       createdAt: now,
       updatedAt: now,
