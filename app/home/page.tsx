@@ -23,9 +23,9 @@ const StressGauge = ({ score }: { score: number }) => {
   const dashOffset = circumference - (Math.min(score, 100) / 100) * circumference;
 
   return (
-    <div className="flex flex-col items-center justify-center w-full py-4">
-      <div className="relative w-72 h-40 flex items-center justify-center overflow-hidden">
-        <svg className="w-full h-full" viewBox="0 0 200 120">
+    <div className="flex flex-col items-center justify-center w-full py-8">
+      <div className="relative w-72 h-auto flex flex-col items-center">
+        <svg className="w-full h-36" viewBox="0 0 200 100" preserveAspectRatio="xMidYMid meet">
           <path
             d="M 20 100 A 80 80 0 0 1 180 100"
             fill="none"
@@ -45,10 +45,10 @@ const StressGauge = ({ score }: { score: number }) => {
           />
         </svg>
 
-        <div className="absolute top-12 flex flex-col items-center">
-          <span className="text-7xl font-bold tracking-tighter">{score || 0}</span>
+        <div className="flex flex-col items-center -mt-24 pb-4">
+          <span className="text-7xl font-bold tracking-tighter leading-none">{score || 0}</span>
           <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest mt-1">Stress Level</p>
-          <span className={`text-2xl font-bold mt-1 ${status.color}`}>
+          <span className={`text-3xl font-bold mt-2 ${status.color}`}>
             {status.label}
           </span>
         </div>
