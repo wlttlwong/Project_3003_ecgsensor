@@ -124,6 +124,14 @@ function formatDateTime(iso: string): string {
   });
 }
 
+function formatDayMonth(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString(undefined, {
+    day: "2-digit",
+    month: "short",
+  });
+}
+
 const ACTIVITY_ICONS: Record<SessionType, string> = {
   walking: "👟",
   jogging: "🏃",
@@ -403,6 +411,51 @@ export default function DashboardPage() {
     if (avgHrs.length === 0) return null;
     return avgHrs.reduce((a, b) => a + b, 0) / avgHrs.length;
   }, [calendarSessions]);
+  const weeklyRange = useMemo(
+    () => getRangeForMode("weekly", calendarAnchor),
+    [calendarAnchor]
+  );
+  const weeklySessions = useMemo(
+    () =>
+      filtered.filter((s) => {
+        const t = new Date(s.startedAt).getTime();
+        return (
+          t >= weeklyRange.start.getTime() && t < weeklyRange.end.getTime()
+        );
+      }),
+    [filtered, weeklyRange]
+  );
+  const weeklyAverageHrv = useMemo(() => {
+    const vals = weeklySessions
+      .map((s) => s.avgHrvMs)
+      .filter((v): v is number => v != null);
+    if (vals.length === 0) return null;
+    return vals.reduce((a, b) => a + b, 0) / vals.length;
+  }, [weeklySessions]);
+  const weeklyDayChips = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const dayDate = addDays(weeklyRange.start, i);
+      const dayStart = dayDate.getTime();
+      const dayEnd = addDays(dayDate, 1).getTime();
+      const daySessions = weeklySessions.filter((s) => {
+        const t = new Date(s.startedAt).getTime();
+        return t >= dayStart && t < dayEnd;
+      });
+      const dayHrv = daySessions
+        .map((s) => s.avgHrvMs)
+        .filter((v): v is number => v != null);
+      const avgHrv =
+        dayHrv.length > 0
+          ? dayHrv.reduce((a, b) => a + b, 0) / dayHrv.length
+          : null;
+      return {
+        label: WEEKDAY_LABELS[i],
+        dayNumber: dayDate.getDate(),
+        hasData: daySessions.length > 0,
+        avgHrv,
+      };
+    });
+  }, [weeklyRange.start, weeklySessions]);
 
   // Enhanced personalized insight with stress-based recommendations
   const enhancedInsightBody = useMemo(() => {
@@ -471,8 +524,8 @@ export default function DashboardPage() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#F0F9FF] to-white p-6">
-        <p className="text-slate-600">Loading dashboard…</p>
+      <div className="min-h-screen bg-[#0A0F2C] p-6">
+        <p className="text-slate-200">Loading dashboard…</p>
       </div>
     );
   }
@@ -501,18 +554,13 @@ export default function DashboardPage() {
     storageMode === "api" ? "API sync enabled" : "Guest mode (local demo storage)";
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#F0F9FF] via-white to-slate-50">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8">
+    <div className="min-h-screen bg-[#0A0F2C] p-6 md:p-12 text-slate-200">
+      <div className="max-w-6xl mx-auto space-y-8">
         {/* Header */}
-        <header className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-          <div className="space-y-2 max-w-xl">
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900">
-              Dashboard
-            </h1>
-            <p className="text-slate-600 text-base sm:text-lg">
-              Real-time ECG heart rate monitoring — personalized fitness insights
-              for walking, jogging, and cycling.
-            </p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h1 className="text-4xl font-bold text-white tracking-tight">Dashboard</h1>
+            <p className="text-slate-400 mt-2 text-lg">Real-time ECG heart rate monitoring — personalized fitness insights for your health.</p>
             <div className="flex items-center gap-2 text-sm">
               <span
                 className={`inline-block h-2.5 w-2.5 rounded-full ${
@@ -524,7 +572,7 @@ export default function DashboardPage() {
                 }`}
                 aria-hidden
               />
-              <span className="text-slate-600">{statusLabel}</span>
+              <span className="text-slate-300">{statusLabel}</span>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto lg:min-w-[320px]">
@@ -552,7 +600,7 @@ export default function DashboardPage() {
               type="button"
               onClick={() => void loadSamples()}
               disabled={isSyncing}
-              className="inline-flex items-center justify-center rounded-xl border-2 border-slate-200 bg-white text-slate-800 font-medium px-5 py-3.5 hover:bg-slate-50 transition"
+              className="inline-flex items-center justify-center rounded-xl border border-slate-500 bg-[#1e293b] text-slate-100 font-medium px-5 py-3.5 hover:bg-slate-700 transition"
             >
               {isSyncing ? "Syncing..." : "Load sample data"}
             </button>
@@ -567,21 +615,120 @@ export default function DashboardPage() {
               </button>
             )}
           </div>
-        </header>
+        </div>
 
-        <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+        <section className="rounded-[2rem] bg-[#5C66A3] p-6 sm:p-8 shadow-2xl border border-white/10">
+          <div className="space-y-5">
+            <h2 className="text-4xl font-bold text-white tracking-tight">Trends</h2>
+            <div className="flex flex-wrap gap-2 rounded-full bg-[#1e293b] p-1 w-fit">
+              {(["weekly", "monthly", "yearly"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setCalendarMode(mode)}
+                  className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                    calendarMode === mode
+                      ? "bg-white/15 text-white"
+                      : "text-slate-300 hover:text-white"
+                  }`}
+                >
+                  {mode[0].toUpperCase() + mode.slice(1)}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xl font-semibold text-slate-100">{calendarLabel}</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => moveCalendar(-1)}
+                  className="h-10 w-10 rounded-full bg-[#1e293b] hover:bg-slate-700 text-white transition"
+                  aria-label="Previous range"
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveCalendar(1)}
+                  className="h-10 w-10 rounded-full bg-[#1e293b] hover:bg-slate-700 text-white transition"
+                  aria-label="Next range"
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+            <div>
+              <p className="text-6xl font-bold text-white leading-none">
+                {weeklyAverageHrv != null ? `${Math.round(weeklyAverageHrv)}` : "—"}
+                <span className="text-4xl ml-2 text-slate-300">ms</span>
+              </p>
+              <p className="text-slate-300 mt-2">Weekly Average HRV</p>
+            </div>
+            <div className="rounded-[2rem] bg-[#1e293b] p-5 border border-white/10 shadow-2xl space-y-5">
+              <h3 className="text-2xl font-bold text-white">Stress Score</h3>
+              <div className="grid grid-cols-7 gap-2">
+                {weeklyDayChips.map((chip) => (
+                  <div key={`${chip.label}-${chip.dayNumber}`} className="text-center">
+                    <p className="text-xs text-slate-400 mb-2">{chip.label}</p>
+                    <div
+                      className={`mx-auto h-11 w-11 rounded-full flex items-center justify-center text-sm font-semibold border ${
+                        chip.hasData
+                          ? "bg-emerald-400 text-[#0A0F2C] border-emerald-300"
+                          : "bg-black/30 text-slate-300 border-slate-700"
+                      }`}
+                    >
+                      {chip.dayNumber}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-5 pt-2">
+                <div>
+                  <p className="text-sm text-slate-400">Max HRV</p>
+                  <p className="text-4xl font-bold text-white">
+                    {hrvMetrics.maxHrv != null ? Math.round(hrvMetrics.maxHrv) : "—"}
+                    <span className="text-2xl ml-1 text-slate-300">ms</span>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-400">Min HRV</p>
+                  <p className="text-4xl font-bold text-white">
+                    {hrvMetrics.minHrv != null ? Math.round(hrvMetrics.minHrv) : "—"}
+                    <span className="text-2xl ml-1 text-slate-300">ms</span>
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-5 pt-2">
+                <div>
+                  <p className="text-sm text-emerald-300">Best Day</p>
+                  <p className="text-3xl font-bold text-emerald-300">
+                    {formatDayMonth(bestDay)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-400">Worst Day</p>
+                  <p className="text-3xl font-bold text-white">
+                    {formatDayMonth(worstDay)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-[2rem] bg-[#5C66A3] p-5 shadow-2xl border border-white/10">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
                 {authModeLabel}
               </p>
-              <p className="text-sm text-slate-700">
+              <p className="text-sm text-slate-200">
                 {authUser
                   ? `Signed in as ${authUser.email}. New sessions will be stored through the backend routes.`
                   : "Sign in to store sessions through the new API routes. Without an account the dashboard still works in local demo mode."}
               </p>
               {authError && (
-                <p className="text-sm text-amber-700">{authError}</p>
+                <p className="text-sm text-amber-400">{authError}</p>
               )}
             </div>
             <div className="flex flex-wrap gap-3">
@@ -589,7 +736,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                  className="rounded-xl border border-slate-500 bg-[#1e293b] px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
                 >
                   Log out
                 </button>
@@ -597,13 +744,13 @@ export default function DashboardPage() {
                 <>
                   <Link
                     href="/login"
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                    className="rounded-xl border border-slate-500 bg-[#1e293b] px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
                   >
                     Sign in
                   </Link>
                   <Link
                     href="/register"
-                    className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                    className="rounded-xl bg-[#10b981] px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
                   >
                     Create account
                   </Link>
@@ -614,18 +761,18 @@ export default function DashboardPage() {
         </section>
 
         {/* Calibration Status Box */}
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 flex items-start justify-between gap-3">
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-950/20 p-4 flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <span className="text-2xl">✓</span>
             <div>
-              <p className="font-semibold text-emerald-900 text-sm">Calibration Status</p>
-              <p className="text-xs text-emerald-700 mt-1">Signal quality is good. Ready to start monitoring.</p>
+              <p className="font-semibold text-emerald-400 text-sm">Calibration Status</p>
+              <p className="text-xs text-emerald-300 mt-1">Signal quality is good. Ready to start monitoring.</p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => setShowCalibrationModal(true)}
-            className="text-xs font-medium text-emerald-700 hover:text-emerald-900 whitespace-nowrap px-2 py-1 rounded hover:bg-emerald-100 transition"
+                className="text-xs font-medium text-emerald-300 hover:text-emerald-200 whitespace-nowrap px-2 py-1 rounded hover:bg-emerald-900/30 transition"
           >
             How to calibrate →
           </button>
@@ -635,9 +782,9 @@ export default function DashboardPage() {
         {sessions.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Trends Section - Left */}
-            <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm space-y-6">
+            <section className="rounded-[2rem] border border-white/10 bg-[#1e293b] p-6 shadow-2xl space-y-6">
               <div>
-                <h2 className="text-2xl font-bold text-slate-900 mb-4">Trend</h2>
+                <h2 className="text-2xl font-bold text-white mb-4">Trend</h2>
                 
                 {/* Time Period Selector */}
                 <div className="flex flex-wrap items-center gap-3 mb-6">
@@ -649,7 +796,7 @@ export default function DashboardPage() {
                       className={`rounded-full px-5 py-2.5 text-sm font-semibold transition ${
                         calendarMode === mode
                           ? "bg-slate-900 text-white"
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                          : "bg-[#0A0F2C] text-slate-300 hover:bg-slate-800"
                       }`}
                     >
                       {mode[0].toUpperCase() + mode.slice(1)}
@@ -659,7 +806,7 @@ export default function DashboardPage() {
 
                 {/* Date Range and Navigation */}
                 <div className="flex items-center justify-between mb-6 gap-4">
-                  <p className="text-base font-semibold text-slate-700">{calendarLabel}</p>
+                  <p className="text-base font-semibold text-slate-200">{calendarLabel}</p>
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -682,12 +829,12 @@ export default function DashboardPage() {
 
                 {/* Main HRV Metric */}
                 <div className="mb-6">
-                  <p className="text-5xl font-bold text-slate-900 mb-2">
+                  <p className="text-5xl font-bold text-white mb-2">
                     {hrvMetrics.averageHrv != null
                       ? `${Math.round(hrvMetrics.averageHrv)} ms`
                       : "— ms"}
                   </p>
-                  <p className="text-base text-slate-600 mb-3">
+                  <p className="text-base text-slate-300 mb-3">
                     {calendarMode === "weekly"
                       ? "Weekly"
                       : calendarMode === "monthly"
@@ -695,13 +842,13 @@ export default function DashboardPage() {
                       : "Yearly"}{" "}
                     Average HRV
                   </p>
-                  <p className="text-xs text-slate-500 px-3 py-2 bg-slate-50 rounded border border-slate-200">
+                  <p className="text-xs text-slate-300 px-3 py-2 bg-[#0A0F2C] rounded border border-white/10">
                     💡 <strong>Higher HRV</strong> = better recovery &amp; endurance. <strong>Lower HRV</strong> = fatigue or stress.
                   </p>
                 </div>
 
                 {/* Stress Score Card */}
-                <div className={`rounded-2xl p-6 space-y-6 mb-6 ${
+                <div className={`rounded-[2rem] p-6 space-y-6 mb-6 ${
                   getStressLevel(hrvMetrics.averageHrv).bgColor
                 } border-l-4 ${
                   hrvMetrics.averageHrv == null
@@ -720,39 +867,39 @@ export default function DashboardPage() {
                     </h3>
                   </div>
 
-                  <p className="text-sm text-slate-700">
+                  <p className="text-sm text-slate-200">
                     {getStressLevel(hrvMetrics.averageHrv).description}
                   </p>
 
                   {/* HRV Range */}
-                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-300">
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
                     <div>
-                      <p className="text-xs font-semibold text-slate-600 mb-2">Max HRV</p>
-                      <p className="text-2xl font-bold text-slate-900">
+                      <p className="text-xs font-semibold text-slate-300 mb-2">Max HRV</p>
+                      <p className="text-2xl font-bold text-white">
                         {hrvMetrics.maxHrv != null ? `${Math.round(hrvMetrics.maxHrv)}` : "—"}
                       </p>
-                      <p className="text-xs text-slate-500 mt-1">ms</p>
+                      <p className="text-xs text-slate-400 mt-1">ms</p>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-slate-600 mb-2">Min HRV</p>
-                      <p className="text-2xl font-bold text-slate-900">
+                      <p className="text-xs font-semibold text-slate-300 mb-2">Min HRV</p>
+                      <p className="text-2xl font-bold text-white">
                         {hrvMetrics.minHrv != null ? `${Math.round(hrvMetrics.minHrv)}` : "—"}
                       </p>
-                      <p className="text-xs text-slate-500 mt-1">ms</p>
+                      <p className="text-xs text-slate-400 mt-1">ms</p>
                     </div>
                   </div>
 
                   {/* Best and Worst Day */}
-                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-300">
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
                     <div>
-                      <p className="text-xs font-semibold text-slate-600 mb-2">Best Day</p>
-                      <p className="text-lg font-bold text-slate-900">
+                      <p className="text-xs font-semibold text-slate-300 mb-2">Best Day</p>
+                      <p className="text-lg font-bold text-white">
                         {bestDay ? new Date(bestDay).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-slate-600 mb-2">Worst Day</p>
-                      <p className="text-lg font-bold text-slate-900">
+                      <p className="text-xs font-semibold text-slate-300 mb-2">Worst Day</p>
+                      <p className="text-lg font-bold text-white">
                         {worstDay ? new Date(worstDay).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "—"}
                       </p>
                     </div>
@@ -760,14 +907,14 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Resting Heart Rate */}
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-                  <h3 className="text-base font-semibold text-slate-900 flex items-center gap-2 mb-4">
+                <div className="rounded-xl border border-white/10 bg-[#0A0F2C] p-5">
+                  <h3 className="text-base font-semibold text-white flex items-center gap-2 mb-4">
                     <span>❤️</span> Resting Heart Rate
                   </h3>
-                  <p className="text-3xl font-bold text-slate-900">
+                  <p className="text-3xl font-bold text-white">
                     {restingHr != null ? `${Math.round(restingHr)} bpm` : "—"}
                   </p>
-                  <p className="text-sm text-slate-600 mt-2">
+                  <p className="text-sm text-slate-300 mt-2">
                     Average resting heart rate this {calendarMode === "weekly" ? "week" : calendarMode}
                   </p>
                 </div>
@@ -775,8 +922,8 @@ export default function DashboardPage() {
             </section>
 
             {/* Overview Section - Right */}
-            <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm space-y-4">
-              <div className="rounded-2xl bg-slate-950 text-white p-4 sm:p-5">
+            <section className="rounded-[2rem] border border-white/10 bg-[#1e293b] p-5 shadow-2xl space-y-4">
+              <div className="rounded-[2rem] bg-slate-950 text-white p-4 sm:p-5 border border-white/10">
                 <p className="text-lg font-semibold mb-3">Hourly overview</p>
                 <div className="overflow-x-auto">
                   <div className="min-w-[560px] space-y-2">
@@ -827,16 +974,16 @@ export default function DashboardPage() {
               </div>
 
               {/* Today's insight */}
-              <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-5">
-                <h2 className="text-lg font-semibold text-slate-900 mb-2">
+              <div className="rounded-[2rem] border border-white/10 bg-[#0A0F2C] p-5">
+                <h2 className="text-lg font-semibold text-white mb-2">
                   Today&apos;s insight
                 </h2>
-                <p className="text-slate-700 leading-relaxed text-sm">{enhancedInsightBody}</p>
+                <p className="text-slate-300 leading-relaxed text-sm">{enhancedInsightBody}</p>
                 {sessions.length > 0 && hrvInsight.percentChangeVsLastWeek != null && (
                   <p className="mt-4 text-lg font-semibold text-emerald-700">
                     {hrvInsight.percentChangeVsLastWeek >= 0 ? "+" : ""}
                     {Math.round(hrvInsight.percentChangeVsLastWeek * 10) / 10}%
-                    <span className="text-slate-600 text-sm font-normal ml-2">
+                    <span className="text-slate-300 text-sm font-normal ml-2">
                       vs last week (average HRV)
                     </span>
                   </p>
@@ -847,7 +994,7 @@ export default function DashboardPage() {
         )}
 
         <p
-          className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3"
+          className="text-xs text-amber-200 bg-amber-900/25 border border-amber-500/40 rounded-lg px-4 py-3"
           role="note"
         >
           Course prototype — not for medical diagnosis. Heart rate zones are
@@ -856,7 +1003,7 @@ export default function DashboardPage() {
 
         {/* Hero — empty state */}
         {sessions.length === 0 && (
-          <section className="relative overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-md shadow-slate-200/50">
+          <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[#1e293b] shadow-2xl">
             <div
               className="absolute inset-0 opacity-[0.12] pointer-events-none"
               aria-hidden
@@ -877,10 +1024,10 @@ export default function DashboardPage() {
               </svg>
             </div>
             <div className="relative px-6 py-10 sm:px-10 text-center space-y-5">
-              <h2 className="text-xl sm:text-2xl font-semibold text-slate-900">
+              <h2 className="text-xl sm:text-2xl font-semibold text-white">
                 Ready to optimize your workout?
               </h2>
-              <p className="text-slate-600 max-w-lg mx-auto">
+              <p className="text-slate-300 max-w-lg mx-auto">
                 Connect your ECG sensor and start a session — walking, jogging,
                 or cycling — to see heart rate trends and recovery insights here.
               </p>
@@ -896,12 +1043,12 @@ export default function DashboardPage() {
 
         {/* Current week + metrics */}
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="text-lg font-semibold text-white">
             This week overview
           </h2>
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+          <div className="rounded-[2rem] border border-white/10 bg-[#1e293b] p-5 shadow-2xl">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-              <span className="text-sm font-medium text-slate-500">
+              <span className="text-sm font-medium text-slate-300">
                 Avg HR trend (this week)
               </span>
               <span className="text-xs text-slate-400">
@@ -959,7 +1106,7 @@ export default function DashboardPage() {
 
         {/* Filter chips + table */}
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-slate-900">Past sessions</h2>
+          <h2 className="text-lg font-semibold text-white">Past sessions</h2>
           <div className="flex flex-wrap gap-2">
             <FilterChip
               active={filterType === "all"}
@@ -982,7 +1129,7 @@ export default function DashboardPage() {
           </label>
           <select
             id="session-type-select"
-            className="sm:hidden w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-800 bg-white"
+            className="sm:hidden w-full border border-white/10 rounded-lg px-3 py-2 text-slate-200 bg-[#1e293b]"
             value={filterType}
             onChange={(e) =>
               setFilterType(e.target.value as SessionType | "all")
@@ -996,10 +1143,10 @@ export default function DashboardPage() {
             ))}
           </select>
 
-          <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm overflow-hidden">
+          <div className="rounded-[2rem] border border-white/10 bg-[#1e293b] shadow-2xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left min-w-[720px]">
-                <thead className="bg-slate-50 text-slate-500 uppercase text-xs tracking-wide">
+                <thead className="bg-[#0A0F2C] text-slate-300 uppercase text-xs tracking-wide">
                   <tr>
                     <th className="px-3 py-3 w-12"> </th>
                     <th className="px-3 py-3">Date &amp; time</th>
@@ -1017,7 +1164,7 @@ export default function DashboardPage() {
                     <tr>
                       <td
                         colSpan={9}
-                        className="px-4 py-10 text-center text-slate-500"
+                        className="px-4 py-10 text-center text-slate-300"
                       >
                         No sessions match this filter. Start live monitoring or
                         load sample data.
@@ -1027,29 +1174,29 @@ export default function DashboardPage() {
                     filtered.map((s) => (
                       <tr
                         key={s.id}
-                        className="border-t border-slate-100 hover:bg-slate-50/80"
+                        className="border-t border-white/10 hover:bg-white/5"
                       >
                         <td className="px-3 py-3 text-center text-xl" title={SESSION_TYPE_LABELS[s.sessionType]}>
                           {activityIcon(s.sessionType)}
                         </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-slate-800">
+                        <td className="px-3 py-3 whitespace-nowrap text-slate-100">
                           {formatDateTime(s.startedAt)}
                         </td>
-                        <td className="px-3 py-3 text-slate-700">
+                        <td className="px-3 py-3 text-slate-200">
                           {SESSION_TYPE_LABELS[s.sessionType]}
                         </td>
-                        <td className="px-3 py-3 tabular-nums text-slate-800">
+                        <td className="px-3 py-3 tabular-nums text-slate-100">
                           {formatDuration(s.durationSec)}
                         </td>
                         <td className="px-3 py-3 tabular-nums">
-                          <span className="text-slate-800">{s.avgHr ?? "—"}</span>
+                          <span className="text-slate-100">{s.avgHr ?? "—"}</span>
                           <span className="text-slate-400"> / </span>
-                          <span className="text-slate-600">{s.maxHr ?? "—"}</span>
+                          <span className="text-slate-300">{s.maxHr ?? "—"}</span>
                         </td>
-                        <td className="px-3 py-3 text-slate-700 text-xs max-w-[140px]">
+                        <td className="px-3 py-3 text-slate-200 text-xs max-w-[140px]">
                           {formatApproxHrZone(s)}
                         </td>
-                        <td className="px-3 py-3 tabular-nums text-slate-800">
+                        <td className="px-3 py-3 tabular-nums text-slate-100">
                           {s.avgHrvMs != null
                             ? `${Math.round(s.avgHrvMs)} ms`
                             : "—"}
@@ -1083,12 +1230,12 @@ export default function DashboardPage() {
         </section>
 
         {/* Progress teaser */}
-        <section className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-8 text-center space-y-3">
-          <h2 className="text-base font-semibold text-slate-700">
+        <section className="rounded-[2rem] border border-dashed border-white/20 bg-[#1e293b] p-8 text-center space-y-3 shadow-2xl">
+          <h2 className="text-base font-semibold text-white">
             Your progress over time
           </h2>
           <PlaceholderProgressChart />
-          <p className="text-sm text-slate-500 max-w-md mx-auto">
+          <p className="text-sm text-slate-300 max-w-md mx-auto">
             After 3+ sessions, your group can plot cardiovascular fitness trends
             here (e.g. resting HR, HRV, or time in zone).
           </p>
@@ -1102,13 +1249,13 @@ export default function DashboardPage() {
           aria-modal="true"
           aria-labelledby="session-detail-title"
         >
-          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-slate-200">
+          <div className="bg-[#1e293b] rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-white/10 text-slate-200">
             <div className="flex justify-between items-start gap-4">
               <div>
-                <h2 id="session-detail-title" className="text-xl font-semibold text-slate-900">
+                <h2 id="session-detail-title" className="text-xl font-semibold text-white">
                   Session details
                 </h2>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-slate-300">
                   {formatDateTime(detail.startedAt)} ·{" "}
                   {SESSION_TYPE_LABELS[detail.sessionType]}
                 </p>
@@ -1116,14 +1263,14 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setDetail(null)}
-                className="text-slate-400 hover:text-slate-600 text-2xl leading-none"
+                className="text-slate-400 hover:text-slate-200 text-2xl leading-none"
                 aria-label="Close"
               >
                 ×
               </button>
             </div>
-            <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
-              <p className="text-xs font-medium text-slate-500 mb-2">
+            <div className="rounded-xl bg-[#0A0F2C] border border-white/10 p-4">
+              <p className="text-xs font-medium text-slate-300 mb-2">
                 ECG waveform (placeholder)
               </p>
               <EcgPlaceholder />
@@ -1134,34 +1281,34 @@ export default function DashboardPage() {
             </div>
             <dl className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <dt className="text-slate-500">Duration</dt>
-                <dd className="font-medium text-slate-900">
+                <dt className="text-slate-300">Duration</dt>
+                <dd className="font-medium text-white">
                   {formatDuration(detail.durationSec)}
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-500">Avg / max HR</dt>
-                <dd className="font-medium text-slate-900">
+                <dt className="text-slate-300">Avg / max HR</dt>
+                <dd className="font-medium text-white">
                   {detail.avgHr ?? "—"} / {detail.maxHr ?? "—"} bpm
                 </dd>
               </div>
               <div className="col-span-2">
-                <dt className="text-slate-500">Approx. HR zone</dt>
-                <dd className="font-medium text-slate-900">
+                <dt className="text-slate-300">Approx. HR zone</dt>
+                <dd className="font-medium text-white">
                   {formatApproxHrZone(detail)}
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-500">Avg HRV</dt>
-                <dd className="font-medium text-slate-900">
+                <dt className="text-slate-300">Avg HRV</dt>
+                <dd className="font-medium text-white">
                   {detail.avgHrvMs != null
                     ? `${Math.round(detail.avgHrvMs)} ms`
                     : "—"}
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-500">Summary</dt>
-                <dd className="font-medium text-slate-900">
+                <dt className="text-slate-300">Summary</dt>
+                <dd className="font-medium text-white">
                   {detail.stressSummary}
                 </dd>
               </div>
@@ -1178,20 +1325,20 @@ export default function DashboardPage() {
           aria-modal="true"
           aria-labelledby="calibration-title"
         >
-          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-slate-200">
+          <div className="bg-[#1e293b] rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-white/10 text-slate-200">
             <div className="flex justify-between items-start gap-4">
               <div>
-                <h2 id="calibration-title" className="text-xl font-semibold text-slate-900">
+                <h2 id="calibration-title" className="text-xl font-semibold text-white">
                   How to Calibrate
                 </h2>
-                <p className="text-sm text-slate-500 mt-1">
+                <p className="text-sm text-slate-300 mt-1">
                   Step-by-step calibration guide for accurate heart rate measurement
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowCalibrationModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-2xl leading-none"
+                className="text-slate-400 hover:text-slate-200 text-2xl leading-none"
                 aria-label="Close"
               >
                 ×
@@ -1210,26 +1357,26 @@ export default function DashboardPage() {
               </div>
 
               <div className="space-y-3">
-                <h3 className="font-semibold text-slate-900">Calibration Steps</h3>
-                <ol className="space-y-3 text-slate-700">
+                <h3 className="font-semibold text-white">Calibration Steps</h3>
+                <ol className="space-y-3 text-slate-200">
                   <li className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-200 text-slate-900 flex items-center justify-center text-xs font-semibold">1</span>
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-700 text-white flex items-center justify-center text-xs font-semibold">1</span>
                     <span><strong>Prepare:</strong> Sit quietly for 30-60 seconds in a relaxed position.</span>
                   </li>
                   <li className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-200 text-slate-900 flex items-center justify-center text-xs font-semibold">2</span>
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-700 text-white flex items-center justify-center text-xs font-semibold">2</span>
                     <span><strong>Position:</strong> Place your fingers on the camera lens and ensure steady contact.</span>
                   </li>
                   <li className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-200 text-slate-900 flex items-center justify-center text-xs font-semibold">3</span>
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-700 text-white flex items-center justify-center text-xs font-semibold">3</span>
                     <span><strong>Light:</strong> Ensure adequate room lighting (avoid direct sunlight on the lens).</span>
                   </li>
                   <li className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-200 text-slate-900 flex items-center justify-center text-xs font-semibold">4</span>
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-700 text-white flex items-center justify-center text-xs font-semibold">4</span>
                     <span><strong>Wait:</strong> Hold still while the signal stabilizes (typically 10-15 seconds).</span>
                   </li>
                   <li className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-200 text-slate-900 flex items-center justify-center text-xs font-semibold">5</span>
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-700 text-white flex items-center justify-center text-xs font-semibold">5</span>
                     <span><strong>Verify:</strong> Check that the heart rate value appears steady and reasonable (40-180 bpm).</span>
                   </li>
                 </ol>
@@ -1276,7 +1423,7 @@ function FilterChip({
       className={`snap-start shrink-0 rounded-full px-4 py-2 text-sm font-medium transition border ${
         active
           ? "bg-emerald-500 text-white border-emerald-500 shadow-sm"
-          : "bg-white text-slate-700 border-slate-200 hover:border-emerald-300"
+          : "bg-[#1e293b] text-slate-200 border-white/10 hover:border-emerald-300"
       }`}
     >
       {children}
@@ -1302,13 +1449,13 @@ function MetricPill({
         ? "border-amber-200 bg-amber-50/80"
         : tone === "intense"
           ? "border-red-200 bg-red-50/80"
-          : "border-slate-200 bg-white";
+          : "border-white/10 bg-[#1e293b]";
   return (
     <div
       className={`snap-start shrink-0 min-w-[140px] rounded-xl border px-4 py-3 shadow-sm ${border}`}
     >
-      <p className="text-xs font-medium text-slate-500 mb-1">{label}</p>
-      <p className="text-xl font-bold text-slate-900 tabular-nums">
+      <p className="text-xs font-medium text-slate-300 mb-1">{label}</p>
+      <p className="text-xl font-bold text-white tabular-nums">
         {value}
         {suffix && <span className="text-sm font-semibold">{suffix}</span>}
       </p>
