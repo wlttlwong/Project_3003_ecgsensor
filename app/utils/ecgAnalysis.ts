@@ -60,7 +60,7 @@ export function getStressLabel(rmssd: number): { label: string; color: string } 
 }
 
 /**
- * NEW: Evaluates the quality of the recorded session for trial analysis.
+ * Evaluates the quality of the recorded session for trial analysis.
  * Detects artifacts, sensor dropouts, and non-physiological spikes.
  */
 export function evaluateDataQuality(rrIntervals: number[]): { 
