@@ -238,7 +238,7 @@ export default function Home() {
         <div className="flex items-center gap-12">
           <div className='flex gap-12 text-sm font-bold tracking-widest'>
             <Link href="/" className="text-blue-400">LIVE MONITORING</Link>
-            <Link href="/history" className="hover:text-blue-400 transition-colors">HISTORY</Link>
+            <Link href="/dashboard" className="hover:text-blue-400 transition-colors">HISTORY</Link>
           </div>
           <button onClick={() => setIsProfileOpen(true)} className='bg-white/10 p-2 px-6 rounded-full border border-white/20 hover:bg-white/20 transition-all text-xs font-bold tracking-widest'>PROFILE SETTINGS</button>
         </div>
