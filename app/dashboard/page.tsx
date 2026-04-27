@@ -36,6 +36,10 @@ const DASHBOARD_SESSION_LABELS: Record<SessionType, string> = {
   rest: "Rest",
 };
 
+function displaySessionTypeLabel(type: SessionType): string {
+  return DASHBOARD_SESSION_LABELS[type] ?? type;
+}
+
 function startOfDay(d: Date): Date {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
@@ -310,6 +314,12 @@ export default function DashboardPage() {
     () => filterBySessionType(sessions, filterType),
     [sessions, filterType]
   );
+  const sessionTypeOptions = useMemo(() => {
+    const customTypes = sessions
+      .map((s) => s.sessionType)
+      .filter((type) => !SESSION_TYPES.includes(type as (typeof SESSION_TYPES)[number]));
+    return [...SESSION_TYPES, ...Array.from(new Set(customTypes))];
+  }, [sessions]);
   const calendarRange = useMemo(
     () => getRangeForMode(calendarMode, calendarAnchor),
     [calendarMode, calendarAnchor]
@@ -1088,13 +1098,13 @@ export default function DashboardPage() {
             >
               All
             </FilterChip>
-            {SESSION_TYPES.map((t) => (
+            {sessionTypeOptions.map((t) => (
               <FilterChip
                 key={t}
                 active={filterType === t}
                 onClick={() => setFilterType(t)}
               >
-                {DASHBOARD_SESSION_LABELS[t]}
+                {displaySessionTypeLabel(t)}
               </FilterChip>
             ))}
           </div>
@@ -1110,9 +1120,9 @@ export default function DashboardPage() {
             }
           >
             <option value="all">All types</option>
-            {SESSION_TYPES.map((t) => (
+            {sessionTypeOptions.map((t) => (
               <option key={t} value={t}>
-                {DASHBOARD_SESSION_LABELS[t]}
+                {displaySessionTypeLabel(t)}
               </option>
             ))}
           </select>
@@ -1150,14 +1160,14 @@ export default function DashboardPage() {
                         key={s.id}
                         className="border-t border-white/10 hover:bg-white/5"
                       >
-                        <td className="px-3 py-3 text-center text-xl" title={DASHBOARD_SESSION_LABELS[s.sessionType]}>
+                        <td className="px-3 py-3 text-center text-xl" title={displaySessionTypeLabel(s.sessionType)}>
                           {activityIcon(s.sessionType)}
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap text-slate-100">
                           {formatDateTime(s.startedAt)}
                         </td>
                         <td className="px-3 py-3 text-slate-200">
-                          {DASHBOARD_SESSION_LABELS[s.sessionType]}
+                          {displaySessionTypeLabel(s.sessionType)}
                         </td>
                         <td className="px-3 py-3 tabular-nums text-slate-100">
                           {formatDuration(s.durationSec)}
@@ -1220,7 +1230,7 @@ export default function DashboardPage() {
                 </h2>
                 <p className="text-sm text-slate-300">
                   {formatDateTime(detail.startedAt)} ·{" "}
-                  {DASHBOARD_SESSION_LABELS[detail.sessionType]}
+                  {displaySessionTypeLabel(detail.sessionType)}
                 </p>
               </div>
               <button

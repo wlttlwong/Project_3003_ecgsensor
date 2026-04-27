@@ -20,6 +20,10 @@ const ACTIVITY_DISPLAY_LABELS: Record<SessionType, string> = {
   rest: "Rest",
 };
 
+function displayActivityLabel(type: SessionType): string {
+  return ACTIVITY_DISPLAY_LABELS[type] ?? type;
+}
+
 // --- SUB-COMPONENT: GAUGE STRESS INDICATOR ---
 const StressGauge = ({ score }: { score: number }) => {
   const getStatus = (s: number) => {
@@ -92,6 +96,8 @@ export default function Home() {
   // Label Logic
   const [selectedLabel, setSelectedLabel] = useState<SessionType>("rest");
   const [isLabelModalOpen, setIsLabelModalOpen] = useState(false);
+  const [customActivityInput, setCustomActivityInput] = useState("");
+  const [customActivities, setCustomActivities] = useState<SessionType[]>([]);
 
   // Recent Session Data
   const [lastSessionEndTime, setLastSessionEndTime] = useState<string | null>(null);
@@ -335,10 +341,10 @@ export default function Home() {
         
         <div className="flex flex-col items-center gap-4 mb-20">
           <button onClick={handleStartSession} className="px-16 py-4 border-2 border-white rounded-full text-2xl font-bold hover:bg-white hover:text-[#0A0F2C] transition-all active:scale-95">
-            {isECGStreaming ? "Streaming..." : `Start ${ACTIVITY_DISPLAY_LABELS[selectedLabel]} session`}
+            {isECGStreaming ? "Streaming..." : `Start ${displayActivityLabel(selectedLabel)} session`}
           </button>
           <button onClick={() => setIsLabelModalOpen(true)} className="text-lg font-medium underline underline-offset-4 opacity-60 hover:opacity-100 transition-opacity">
-            Label: {ACTIVITY_DISPLAY_LABELS[selectedLabel]}
+            Label: {displayActivityLabel(selectedLabel)}
           </button>
         </div>
 
@@ -347,7 +353,7 @@ export default function Home() {
             <div className="bg-[#1E2A5E] w-full max-w-sm rounded-[30px] p-8 border border-white/10 shadow-2xl">
               <h3 className="text-xl font-bold mb-6 text-center">Select Activity</h3>
               <div className="flex flex-col gap-3">
-                {SESSION_TYPES.map((type) => (
+                {[...SESSION_TYPES, ...customActivities].map((type) => (
                   <button
                     key={type}
                     onClick={() => {
@@ -356,9 +362,32 @@ export default function Home() {
                     }}
                     className={`py-3 rounded-xl font-semibold transition-all ${selectedLabel === type ? 'bg-blue-600' : 'bg-white/5 hover:bg-white/10'}`}
                   >
-                    {ACTIVITY_DISPLAY_LABELS[type]}
+                    {displayActivityLabel(type)}
                   </button>
                 ))}
+                <div className="mt-4 pt-4 border-t border-white/10">
+                  <input
+                    type="text"
+                    placeholder="+ Add custom activity"
+                    className="w-full bg-white/5 p-3 rounded-xl outline-none border border-white/5 focus:border-blue-500"
+                    value={customActivityInput}
+                    onChange={(e) => setCustomActivityInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter") return;
+                      const next = customActivityInput.trim();
+                      if (!next) return;
+                      const existing = [...SESSION_TYPES, ...customActivities].some(
+                        (item) => item.toLowerCase() === next.toLowerCase()
+                      );
+                      if (!existing) {
+                        setCustomActivities((prev) => [...prev, next]);
+                      }
+                      setSelectedLabel(next);
+                      setCustomActivityInput("");
+                      setIsLabelModalOpen(false);
+                    }}
+                  />
+                </div>
               </div>
               <button onClick={() => setIsLabelModalOpen(false)} className="w-full mt-6 text-sm opacity-50 hover:opacity-100 font-bold">Close</button>
             </div>

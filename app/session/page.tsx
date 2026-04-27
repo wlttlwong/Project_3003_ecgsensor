@@ -9,7 +9,7 @@ import SessionSummary from "../components/SessionSummary";
 import { useHeartRateSensor } from "../hooks/useHeartRateSensor";
 import { createSession } from "../lib/apiClient";
 import { appendSession } from "../lib/sessions";
-import { SESSION_TYPES, type SessionRecord, type SessionType } from "../types/session";
+import { type SessionRecord, type SessionType } from "../types/session";
 import {
   calculateStressScore,
   evaluateDataQuality,
@@ -32,9 +32,9 @@ type SummaryData = {
 function getPendingSessionType(): SessionType {
   if (typeof window === "undefined") return "rest";
   const pending = window.sessionStorage.getItem("pendingSessionType");
-  if (pending && SESSION_TYPES.includes(pending as SessionType)) {
+  if (pending && pending.trim().length > 0) {
     window.sessionStorage.removeItem("pendingSessionType");
-    return pending as SessionType;
+    return pending.trim();
   }
   return "rest";
 }

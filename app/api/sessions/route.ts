@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getAuthPayloadFromRequest } from "../../lib/server/auth";
 import { mutateDatabase, readDatabase, type StoredSession } from "../../lib/server/store";
-import { SESSION_TYPES, type SessionType } from "../../types/session";
+import type { SessionType } from "../../types/session";
 
 function toPublicSession(session: StoredSession) {
   return {
@@ -27,7 +27,7 @@ function parseOptionalNumber(value: unknown): number | null {
 }
 
 function isSessionType(value: unknown): value is SessionType {
-  return typeof value === "string" && SESSION_TYPES.includes(value as SessionType);
+  return typeof value === "string" && value.trim().length > 0;
 }
 
 export async function GET(request: NextRequest) {

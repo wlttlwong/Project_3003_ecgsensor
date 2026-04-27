@@ -1,8 +1,8 @@
 /** Activity types for ECG sessions (walking / jogging / cycling / rest). */
 export const SESSION_TYPES = ["walking", "jogging", "cycling", "rest"] as const;
-export type SessionType = (typeof SESSION_TYPES)[number];
+export type SessionType = string;
 
-export const SESSION_TYPE_LABELS: Record<SessionType, string> = {
+export const SESSION_TYPE_LABELS: Record<string, string> = {
   walking: "Walking",
   jogging: "Jogging",
   cycling: "Cycling",

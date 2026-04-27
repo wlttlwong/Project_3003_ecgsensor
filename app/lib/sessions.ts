@@ -49,7 +49,7 @@ function isSessionRecord(x: unknown): x is SessionRecord {
 }
 
 function migrateSessionType(raw: string): SessionType {
-  return LEGACY_SESSION_TYPE_MAP[raw] ?? "rest";
+  return LEGACY_SESSION_TYPE_MAP[raw] ?? raw;
 }
 
 function normalizeRecord(s: SessionRecord): SessionRecord {
