@@ -1,6 +1,14 @@
 import type { PeriodStats, SessionRecord, SessionType } from "../types/session";
+import { getStoredUser } from "./auth";
 
 const STORAGE_KEY = "stress_monitor_sessions_v2";
+const LEGACY_STORAGE_KEY = "stress_monitor_sessions_v1";
+
+function getScopedStorageKey(): string {
+  if (typeof window === "undefined") return `${STORAGE_KEY}:guest`;
+  const user = getStoredUser();
+  return user?.id ? `${STORAGE_KEY}:${user.id}` : `${STORAGE_KEY}:guest`;
+}
 
 /** Legacy types from earlier prototypes → fitness activity types */
 const LEGACY_SESSION_TYPE_MAP: Record<string, SessionType> = {
@@ -51,16 +59,20 @@ function normalizeRecord(s: SessionRecord): SessionRecord {
 /** Load v2; if empty, one-time migrate from v1 localStorage */
 function loadRawSessions(): SessionRecord[] {
   if (typeof window === "undefined") return [];
-  let raw = window.localStorage.getItem(STORAGE_KEY);
+  const scopedKey = getScopedStorageKey();
+  let raw = window.localStorage.getItem(scopedKey);
   if (!raw) {
-    const legacy = window.localStorage.getItem("stress_monitor_sessions_v1");
-    if (legacy) {
-      const parsed = parseSessions(legacy);
-      if (parsed.length) {
-        const normalized = parsed.map(normalizeRecord);
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+    const user = getStoredUser();
+    if (!user) {
+      const legacy = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (legacy) {
+        const parsed = parseSessions(legacy);
+        if (parsed.length) {
+          const normalized = parsed.map(normalizeRecord);
+          window.localStorage.setItem(scopedKey, JSON.stringify(normalized));
+        }
+        raw = window.localStorage.getItem(scopedKey);
       }
-      raw = window.localStorage.getItem(STORAGE_KEY);
     }
   }
   return parseSessions(raw).map(normalizeRecord);
@@ -73,7 +85,7 @@ export function loadSessions(): SessionRecord[] {
 
 export function saveSessions(sessions: SessionRecord[]): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+  window.localStorage.setItem(getScopedStorageKey(), JSON.stringify(sessions));
 }
 
 /** Call from Live monitoring when a session ends (append + save). */
@@ -84,7 +96,7 @@ export function appendSession(session: SessionRecord): void {
 
 export function clearSessions(): void {
   if (typeof window === "undefined") return;
-  window.localStorage.removeItem(STORAGE_KEY);
+  window.localStorage.removeItem(getScopedStorageKey());
 }
 
 function startedTime(s: SessionRecord): number {

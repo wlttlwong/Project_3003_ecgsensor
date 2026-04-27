@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { getStoredUser } from "../lib/auth";
 
 interface MonitorControlsProps {
   isConnected: boolean;
@@ -38,6 +39,11 @@ const HeartRateMonitor: React.FC<MonitorControlsProps> = ({
   const [showBreathingPrompt, setShowBreathingPrompt] = useState(false);
   const criticalHandledRef = useRef(false);
 
+  const getSessionLogKey = useCallback(() => {
+    const user = getStoredUser();
+    return user?.id ? `sessionLogs:${user.id}` : "sessionLogs:guest";
+  }, []);
+
   function startSession() {
     setSessionStart(Date.now());
     setSessionDuration(0);
@@ -67,11 +73,12 @@ const HeartRateMonitor: React.FC<MonitorControlsProps> = ({
         notes,
         timestamp: new Date().toISOString(),
       };
-      const logs = JSON.parse(window.localStorage.getItem("sessionLogs") || "[]");
+      const logKey = getSessionLogKey();
+      const logs = JSON.parse(window.localStorage.getItem(logKey) || "[]");
       logs.push(logEntry);
-      window.localStorage.setItem("sessionLogs", JSON.stringify(logs));
+      window.localStorage.setItem(logKey, JSON.stringify(logs));
     },
-    [avgHR, avgHRV, maxHR, notes, stressLevel]
+    [avgHR, avgHRV, getSessionLogKey, maxHR, notes, stressLevel]
   );
 
   const endSession = useCallback(async () => {
