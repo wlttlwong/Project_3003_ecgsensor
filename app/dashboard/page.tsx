@@ -241,7 +241,6 @@ export default function DashboardPage() {
   const [sensorStatus, setSensorStatus] = useState<
     "checking" | "disconnected" | "connected" | "unsupported"
   >("checking");
-  const [showCalibrationModal, setShowCalibrationModal] = useState(false);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [storageMode, setStorageMode] = useState<"api" | "local">("local");
   const [authError, setAuthError] = useState<string | null>(null);
@@ -543,7 +542,7 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-4xl font-bold text-white tracking-tight">Dashboard</h1>
+            <h1 className="text-4xl font-bold text-white tracking-tight">History</h1>
             <p className="text-slate-400 mt-2 text-lg">Real-time ECG heart rate monitoring — personalized fitness insights for your health.</p>
             <div className="flex items-center gap-2 text-sm">
               <span
@@ -741,24 +740,6 @@ export default function DashboardPage() {
             </div>
           </div>
         </section>
-
-        {/* Calibration Status Box */}
-        <div className="rounded-lg border border-emerald-500/30 bg-emerald-950/20 p-4 flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <span className="text-2xl">✓</span>
-            <div>
-              <p className="font-semibold text-emerald-400 text-sm">Calibration Status</p>
-              <p className="text-xs text-emerald-300 mt-1">Signal quality is good. Ready to start monitoring.</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowCalibrationModal(true)}
-                className="text-xs font-medium text-emerald-300 hover:text-emerald-200 whitespace-nowrap px-2 py-1 rounded hover:bg-emerald-900/30 transition"
-          >
-            How to calibrate →
-          </button>
-        </div>
 
         {/* Trends Section + Overview Grid */}
         {sessions.length > 0 && (
@@ -1290,92 +1271,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Calibration Instructions Modal */}
-      {showCalibrationModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="calibration-title"
-        >
-          <div className="bg-[#1e293b] rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 border border-white/10 text-slate-200">
-            <div className="flex justify-between items-start gap-4">
-              <div>
-                <h2 id="calibration-title" className="text-xl font-semibold text-white">
-                  How to Calibrate
-                </h2>
-                <p className="text-sm text-slate-300 mt-1">
-                  Step-by-step calibration guide for accurate heart rate measurement
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCalibrationModal(false)}
-                className="text-slate-400 hover:text-slate-200 text-2xl leading-none"
-                aria-label="Close"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="space-y-4 text-sm">
-              <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4">
-                <h3 className="font-semibold text-emerald-900 mb-2">✓ Good Signal Indicators</h3>
-                <ul className="space-y-2 text-emerald-800 text-xs">
-                  <li>• Heart rate line is steady and smooth</li>
-                  <li>• No sudden jumps or drops in readings</li>
-                  <li>• Consistent signal for 30+ seconds</li>
-                  <li>• Sensor shows stable contact with skin</li>
-                </ul>
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="font-semibold text-white">Calibration Steps</h3>
-                <ol className="space-y-3 text-slate-200">
-                  <li className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-700 text-white flex items-center justify-center text-xs font-semibold">1</span>
-                    <span><strong>Prepare:</strong> Sit quietly for 30-60 seconds in a relaxed position.</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-700 text-white flex items-center justify-center text-xs font-semibold">2</span>
-                    <span><strong>Position:</strong> Place your fingers on the camera lens and ensure steady contact.</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-700 text-white flex items-center justify-center text-xs font-semibold">3</span>
-                    <span><strong>Light:</strong> Ensure adequate room lighting (avoid direct sunlight on the lens).</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-700 text-white flex items-center justify-center text-xs font-semibold">4</span>
-                    <span><strong>Wait:</strong> Hold still while the signal stabilizes (typically 10-15 seconds).</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-700 text-white flex items-center justify-center text-xs font-semibold">5</span>
-                    <span><strong>Verify:</strong> Check that the heart rate value appears steady and reasonable (40-180 bpm).</span>
-                  </li>
-                </ol>
-              </div>
-
-              <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
-                <h3 className="font-semibold text-amber-900 mb-2">⚠️ Poor Signal Tips</h3>
-                <ul className="space-y-2 text-amber-800 text-xs">
-                  <li>• Clean lens with a soft cloth if image is blurry</li>
-                  <li>• Ensure fingers are not too dry or wet</li>
-                  <li>• Avoid moving or talking during calibration</li>
-                  <li>• If signal unstable, try again in 30 seconds</li>
-                </ul>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowCalibrationModal(false)}
-              className="w-full mt-4 px-4 py-2 rounded-lg bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition"
-            >
-              Got it, close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
