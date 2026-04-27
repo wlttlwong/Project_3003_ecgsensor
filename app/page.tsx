@@ -7,10 +7,18 @@ import { useHeartRateSensor } from './hooks/useHeartRateSensor';
 import { getSessions, getUserProfile, updateUserProfile } from "./lib/apiClient";
 import { clearAuthSession, getStoredUser, getToken } from "./lib/auth";
 import { loadSessions } from "./lib/sessions";
+import { SESSION_TYPES, type SessionType } from "./types/session";
 import { useUserStore } from './store/userStore';
 import HeartRateMonitor from './components/HeartRateMonitor';
 import ECGChart from './components/ECGChart';
 import FAQModal, { FAQ_DATABASE } from './components/FAQModal';
+
+const ACTIVITY_DISPLAY_LABELS: Record<SessionType, string> = {
+  walking: "Study",
+  jogging: "Work",
+  cycling: "Meditation",
+  rest: "Rest",
+};
 
 // --- SUB-COMPONENT: GAUGE STRESS INDICATOR ---
 const StressGauge = ({ score }: { score: number }) => {
@@ -82,10 +90,8 @@ export default function Home() {
   const [selectedFaqId, setSelectedFaqId] = useState<string | null>(null);
 
   // Label Logic
-  const [selectedLabel, setSelectedLabel] = useState<string>("None");
+  const [selectedLabel, setSelectedLabel] = useState<SessionType>("rest");
   const [isLabelModalOpen, setIsLabelModalOpen] = useState(false);
-  const [customLabel, setCustomLabel] = useState("");
-  const [availableLabels, setAvailableLabels] = useState(["Study", "Work", "Meditation"]);
 
   // Recent Session Data
   const [lastSessionEndTime, setLastSessionEndTime] = useState<string | null>(null);
@@ -213,15 +219,8 @@ export default function Home() {
   };
 
   const handleStartSession = () => {
+    sessionStorage.setItem("pendingSessionType", selectedLabel);
     router.push("/session");
-  };
-
-  const handleAddCustomLabel = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && customLabel.trim() !== "") {
-      setAvailableLabels([...availableLabels, customLabel]);
-      setSelectedLabel(customLabel);
-      setCustomLabel("");
-    }
   };
 
   if (!isHydrated) return null;
@@ -336,10 +335,10 @@ export default function Home() {
         
         <div className="flex flex-col items-center gap-4 mb-20">
           <button onClick={handleStartSession} className="px-16 py-4 border-2 border-white rounded-full text-2xl font-bold hover:bg-white hover:text-[#0A0F2C] transition-all active:scale-95">
-            {isECGStreaming ? "Streaming..." : `Start ${selectedLabel !== "None" ? selectedLabel : "session"}`}
+            {isECGStreaming ? "Streaming..." : `Start ${ACTIVITY_DISPLAY_LABELS[selectedLabel]} session`}
           </button>
           <button onClick={() => setIsLabelModalOpen(true)} className="text-lg font-medium underline underline-offset-4 opacity-60 hover:opacity-100 transition-opacity">
-            Label: {selectedLabel}
+            Label: {ACTIVITY_DISPLAY_LABELS[selectedLabel]}
           </button>
         </div>
 
@@ -348,12 +347,18 @@ export default function Home() {
             <div className="bg-[#1E2A5E] w-full max-w-sm rounded-[30px] p-8 border border-white/10 shadow-2xl">
               <h3 className="text-xl font-bold mb-6 text-center">Select Activity</h3>
               <div className="flex flex-col gap-3">
-                {availableLabels.map((l) => (
-                  <button key={l} onClick={() => { setSelectedLabel(l); setIsLabelModalOpen(false); }} className={`py-3 rounded-xl font-semibold transition-all ${selectedLabel === l ? 'bg-blue-600' : 'bg-white/5 hover:bg-white/10'}`}>{l}</button>
+                {SESSION_TYPES.map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => {
+                      setSelectedLabel(type);
+                      setIsLabelModalOpen(false);
+                    }}
+                    className={`py-3 rounded-xl font-semibold transition-all ${selectedLabel === type ? 'bg-blue-600' : 'bg-white/5 hover:bg-white/10'}`}
+                  >
+                    {ACTIVITY_DISPLAY_LABELS[type]}
+                  </button>
                 ))}
-                <div className="mt-4 pt-4 border-t border-white/10">
-                  <input type="text" placeholder="+ Custom Label (Press Enter)" className="w-full bg-white/5 p-3 rounded-xl outline-none border border-white/5 focus:border-blue-500" value={customLabel} onChange={(e) => setCustomLabel(e.target.value)} onKeyDown={handleAddCustomLabel} />
-                </div>
               </div>
               <button onClick={() => setIsLabelModalOpen(false)} className="w-full mt-6 text-sm opacity-50 hover:opacity-100 font-bold">Close</button>
             </div>

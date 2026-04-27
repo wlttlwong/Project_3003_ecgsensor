@@ -9,7 +9,7 @@ import SessionSummary from "../components/SessionSummary";
 import { useHeartRateSensor } from "../hooks/useHeartRateSensor";
 import { createSession } from "../lib/apiClient";
 import { appendSession } from "../lib/sessions";
-import type { SessionRecord } from "../types/session";
+import { SESSION_TYPES, type SessionRecord, type SessionType } from "../types/session";
 import {
   calculateStressScore,
   evaluateDataQuality,
@@ -28,6 +28,16 @@ type SummaryData = {
   breathingCount: number;
   stretchingCount: number;
 };
+
+function getPendingSessionType(): SessionType {
+  if (typeof window === "undefined") return "rest";
+  const pending = window.sessionStorage.getItem("pendingSessionType");
+  if (pending && SESSION_TYPES.includes(pending as SessionType)) {
+    window.sessionStorage.removeItem("pendingSessionType");
+    return pending as SessionType;
+  }
+  return "rest";
+}
 
 export default function Home() {
   const {
@@ -49,6 +59,7 @@ export default function Home() {
   } = useHeartRateSensor();
 
   const [sessionStartedAt, setSessionStartedAt] = useState<Date | null>(null);
+  const [sessionType, setSessionType] = useState<SessionType>("rest");
   const [heartRateSamples, setHeartRateSamples] = useState<number[]>([]);
   const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
 
@@ -107,6 +118,7 @@ export default function Home() {
     setSummaryData(null);
     setHeartRateSamples([]);
     setSessionStartedAt(new Date());
+    setSessionType(getPendingSessionType());
     await startECGStream();
   };
 
@@ -116,7 +128,7 @@ export default function Home() {
       id: crypto.randomUUID(),
       startedAt: startedAt.toISOString(),
       endedAt: endedAt.toISOString(),
-      sessionType: "rest",
+      sessionType,
       durationSec: sessionSeconds,
       maxHr: maxHeartRate > 0 ? Math.round(maxHeartRate) : null,
       avgHr: avgHeartRate > 0 ? Math.round(avgHeartRate) : null,

@@ -12,7 +12,6 @@ import {
 } from "../lib/sessions";
 import {
   SESSION_TYPES,
-  SESSION_TYPE_LABELS,
   type SessionType,
   type SessionRecord,
 } from "../types/session";
@@ -30,6 +29,12 @@ type CalendarMode = "daily" | "weekly" | "monthly" | "yearly";
 
 const WEEKDAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
 const HOUR_MARKERS = [0, 6, 12, 18];
+const DASHBOARD_SESSION_LABELS: Record<SessionType, string> = {
+  walking: "Study",
+  jogging: "Work",
+  cycling: "Meditation",
+  rest: "Rest",
+};
 
 function startOfDay(d: Date): Date {
   const x = new Date(d);
@@ -197,29 +202,6 @@ function HrSparkline({ values }: { values: number[] }) {
         strokeLinejoin="round"
         strokeLinecap="round"
         points={pts.join(" ")}
-      />
-    </svg>
-  );
-}
-
-function PlaceholderProgressChart() {
-  const w = 400;
-  const h = 100;
-  const path =
-    "M0,80 Q80,20 160,60 T320,40 T400,70";
-  return (
-    <svg
-      viewBox={`0 0 ${w} ${h}`}
-      className="w-full max-w-md mx-auto h-24 text-slate-300"
-      aria-hidden
-    >
-      <path
-        d={path}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeDasharray="8 6"
-        opacity={0.5}
       />
     </svg>
   );
@@ -1112,7 +1094,7 @@ export default function DashboardPage() {
                 active={filterType === t}
                 onClick={() => setFilterType(t)}
               >
-                {SESSION_TYPE_LABELS[t]}
+                {DASHBOARD_SESSION_LABELS[t]}
               </FilterChip>
             ))}
           </div>
@@ -1130,7 +1112,7 @@ export default function DashboardPage() {
             <option value="all">All types</option>
             {SESSION_TYPES.map((t) => (
               <option key={t} value={t}>
-                {SESSION_TYPE_LABELS[t]}
+                {DASHBOARD_SESSION_LABELS[t]}
               </option>
             ))}
           </select>
@@ -1168,14 +1150,14 @@ export default function DashboardPage() {
                         key={s.id}
                         className="border-t border-white/10 hover:bg-white/5"
                       >
-                        <td className="px-3 py-3 text-center text-xl" title={SESSION_TYPE_LABELS[s.sessionType]}>
+                        <td className="px-3 py-3 text-center text-xl" title={DASHBOARD_SESSION_LABELS[s.sessionType]}>
                           {activityIcon(s.sessionType)}
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap text-slate-100">
                           {formatDateTime(s.startedAt)}
                         </td>
                         <td className="px-3 py-3 text-slate-200">
-                          {SESSION_TYPE_LABELS[s.sessionType]}
+                          {DASHBOARD_SESSION_LABELS[s.sessionType]}
                         </td>
                         <td className="px-3 py-3 tabular-nums text-slate-100">
                           {formatDuration(s.durationSec)}
@@ -1221,17 +1203,6 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* Progress teaser */}
-        <section className="rounded-[2rem] border border-dashed border-white/20 bg-[#1e293b] p-8 text-center space-y-3 shadow-2xl">
-          <h2 className="text-base font-semibold text-white">
-            Your progress over time
-          </h2>
-          <PlaceholderProgressChart />
-          <p className="text-sm text-slate-300 max-w-md mx-auto">
-            After 3+ sessions, your group can plot cardiovascular fitness trends
-            here (e.g. resting HR, HRV, or time in zone).
-          </p>
-        </section>
       </div>
 
       {detail && (
@@ -1249,7 +1220,7 @@ export default function DashboardPage() {
                 </h2>
                 <p className="text-sm text-slate-300">
                   {formatDateTime(detail.startedAt)} ·{" "}
-                  {SESSION_TYPE_LABELS[detail.sessionType]}
+                  {DASHBOARD_SESSION_LABELS[detail.sessionType]}
                 </p>
               </div>
               <button
