@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = (await request.json()) as {
+      displayName?: unknown;
       age?: unknown;
       height?: unknown;
       goals?: unknown;
@@ -60,6 +61,12 @@ export async function POST(request: NextRequest) {
       const profile = db.profiles.find((entry) => entry.userId === payload.sub);
       if (!profile) {
         return { error: "Profile not found." } as const;
+      }
+
+      // 1. Merge Age (Convert string to number)
+      if (body.displayName !== undefined) {
+        profile.displayName =
+          typeof body.displayName === "string" ? body.displayName.trim() : null;
       }
 
       // 1. Merge Age (Convert string to number)
@@ -78,7 +85,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 4. Merge Stress Triggers (Map your 'stressTrigger' to their 'stressTriggers')
-      const triggerInput = body.stressTriggers || body.stressTriggers;
+      const triggerInput = body.stressTriggers;
       if (triggerInput !== undefined) {
         profile.stressTriggers = ensureStringArray(triggerInput);
       }

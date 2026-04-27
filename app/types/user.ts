@@ -6,6 +6,7 @@ export interface AuthUser {
 
 export interface UserProfile {
   userId: string;
+  displayName?: string | null;
   age: number | null;
   height: number | null;
   goals: string[];

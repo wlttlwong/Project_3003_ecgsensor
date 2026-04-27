@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from "next/navigation";
 import { useHeartRateSensor } from './hooks/useHeartRateSensor';
-import { updateUserProfile } from "./lib/apiClient";
+import { getUserProfile, updateUserProfile } from "./lib/apiClient";
+import { clearAuthSession, getStoredUser } from "./lib/auth";
 import { useUserStore } from './store/userStore';
 import HeartRateMonitor from './components/HeartRateMonitor';
 import ECGChart from './components/ECGChart';
@@ -98,30 +99,66 @@ export default function Home() {
   } = useHeartRateSensor();
 
   useEffect(() => {
-    setIsHydrated(true);
-    const hasAuthToken = typeof window !== "undefined" && !!localStorage.getItem("authToken");
-    const onboardingFlag =
-      searchParams.get("onboarding") === "1" ||
-      (typeof window !== "undefined" &&
-        sessionStorage.getItem("onboardingAfterRegister") === "1");
-    setShowSplash(!hasAuthToken);
-    setOnboardingRequired(hasAuthToken && onboardingFlag);
-    if (username) {
-      setFName(username);
-      setFAge(age || "");
-      setFHeight(height || "");
-      setFTrigger(stressTrigger || "");
-      setFGoal(goals || "");
+    let cancelled = false;
+    async function hydrateProfile() {
+      setIsHydrated(true);
+      const hasAuthToken = typeof window !== "undefined" && !!localStorage.getItem("authToken");
+      const onboardingFlag =
+        searchParams.get("onboarding") === "1" ||
+        (typeof window !== "undefined" &&
+          sessionStorage.getItem("onboardingAfterRegister") === "1");
+      setShowSplash(!hasAuthToken);
+      setOnboardingRequired(hasAuthToken && onboardingFlag);
+
+      const savedTime = localStorage.getItem("lastSessionEndTime");
+      if (savedTime) {
+        setLastSessionEndTime(savedTime);
+        setLastSessionDuration(parseInt(localStorage.getItem("duration") || "0"));
+        setLastAvgHRV(parseInt(localStorage.getItem("avgHRV") || "0"));
+        setLastAvgHR(parseInt(localStorage.getItem("avgHR") || "0"));
+        setLastStressScore(parseInt(localStorage.getItem("stressScore") || "0"));
+      }
+
+      if (!hasAuthToken) return;
+
+      const storedUser = getStoredUser();
+      const fallbackName = storedUser?.email?.split("@")[0] ?? "";
+
+      try {
+        const { profile } = await getUserProfile();
+        if (cancelled) return;
+        const loadedName = profile.displayName?.trim() || fallbackName;
+        const loadedAge = profile.age?.toString() ?? "";
+        const loadedHeight = profile.height?.toString() ?? "";
+        const loadedTrigger = profile.stressTriggers?.[0] ?? "";
+        const loadedGoal = profile.goals?.[0] ?? "";
+
+        setFName(loadedName);
+        setFAge(loadedAge);
+        setFHeight(loadedHeight);
+        setFTrigger(loadedTrigger);
+        setFGoal(loadedGoal);
+        setUser({
+          username: loadedName,
+          age: loadedAge,
+          height: loadedHeight,
+          stressTrigger: loadedTrigger,
+          goals: loadedGoal,
+        });
+      } catch {
+        if (cancelled) return;
+        if (fallbackName) {
+          setFName(fallbackName);
+          setUser({ username: fallbackName });
+        }
+      }
     }
-    const savedTime = localStorage.getItem("lastSessionEndTime");
-    if (savedTime) {
-      setLastSessionEndTime(savedTime);
-      setLastSessionDuration(parseInt(localStorage.getItem("duration") || "0"));
-      setLastAvgHRV(parseInt(localStorage.getItem("avgHRV") || "0"));
-      setLastAvgHR(parseInt(localStorage.getItem("avgHR") || "0"));
-      setLastStressScore(parseInt(localStorage.getItem("stressScore") || "0"));
-    }
-  }, [username, age, height, stressTrigger, goals, searchParams]);
+
+    void hydrateProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, setUser]);
 
   const handleSaveProfile = async () => {
     if (!fName.trim() || !fAge.trim() || !fHeight.trim() || !fTrigger.trim() || !fGoal.trim()) {
@@ -130,6 +167,7 @@ export default function Home() {
 
     try {
       await updateUserProfile({
+        displayName: fName.trim(),
         age: Number(fAge),
         height: Number(fHeight),
         goals: [fGoal],
@@ -388,17 +426,17 @@ export default function Home() {
 
                 <button
                   onClick={() => {
+                    clearAuthSession();
                     setUser({ username: "", age: "", height: "", stressTrigger: "", goals: "" });
-                    localStorage.clear();
-                    sessionStorage.clear();
+                    sessionStorage.removeItem("onboardingAfterRegister");
                     setShowSplash(true);
+                    setOnboardingRequired(false);
                     setIsProfileOpen(false);
                     router.replace("/");
-                    window.location.reload();
                   }}
                   className='w-full mt-4 py-3 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-xs font-bold tracking-widest hover:bg-red-500 hover:text-white transition-all uppercase'
                 >
-                  Reset All Data & Logout
+                  Logout
                 </button>
               </div>
             </div>

@@ -55,7 +55,9 @@ export async function POST(request: NextRequest) {
       db.users.push(user);
       db.profiles.push({
         userId,
+        displayName: null,
         age,
+        height: null,
         goals: [],
         stressTriggers: [],
         maxHeartRate: null,
