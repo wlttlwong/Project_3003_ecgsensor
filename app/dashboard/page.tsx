@@ -4,12 +4,10 @@ import Link from "next/link";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import {
   loadSessions,
-  saveSessions,
   clearSessions,
   filterBySessionType,
   computePeriodStats,
   compareHrvWeekOverWeek,
-  sampleSessions,
   sessionsInCurrentWeekSorted,
 } from "../lib/sessions";
 import {
@@ -20,7 +18,6 @@ import {
 } from "../types/session";
 import { clearAuthSession, getStoredUser, getToken } from "../lib/auth";
 import {
-  createSession as createApiSession,
   deleteSession as deleteApiSession,
   getCurrentUser,
   getSessions as getApiSessions,
@@ -482,24 +479,6 @@ export default function DashboardPage() {
     return baseMessage + recommendation;
   }, [sessions.length, hrvInsight.message, hrvMetrics.averageHrv]);
 
-  const loadSamples = async () => {
-    setIsSyncing(true);
-    try {
-      const samples = sampleSessions();
-      if (storageMode === "api" && authUser) {
-        await Promise.all(samples.map((session) => createApiSession(session)));
-        await refreshSessions();
-        return;
-      }
-
-      const merged = [...samples, ...loadSessions()];
-      saveSessions(merged);
-      setSessions(merged);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   const handleClear = async () => {
     setIsSyncing(true);
     try {
@@ -602,14 +581,6 @@ export default function DashboardPage() {
               </svg>
               Start live monitoring
             </Link>
-            <button
-              type="button"
-              onClick={() => void loadSamples()}
-              disabled={isSyncing}
-              className="inline-flex items-center justify-center rounded-xl border border-slate-500 bg-[#1e293b] text-slate-100 font-medium px-5 py-3.5 hover:bg-slate-700 transition"
-            >
-              {isSyncing ? "Syncing..." : "Load sample data"}
-            </button>
             {sessions.length > 0 && (
               <button
                 type="button"
