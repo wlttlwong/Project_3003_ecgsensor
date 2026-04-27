@@ -21,7 +21,7 @@ export default function RegisterPage() {
 
     try {
       await register(email, password, age ? Number(age) : undefined);
-      router.push("/session");
+      router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to create account.");
     } finally {

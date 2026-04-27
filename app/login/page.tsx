@@ -20,7 +20,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      router.push("/session");
+      router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to sign in.");
     } finally {
