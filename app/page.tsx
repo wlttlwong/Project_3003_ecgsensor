@@ -299,20 +299,20 @@ export default function Home() {
   if (onboardingRequired) {
     return (
       <div className="min-h-screen bg-[#0A0F2C] text-white flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-[#1E2A5E] rounded-[40px] p-10 shadow-2xl border border-white/5">
+        <div className="max-w-md w-full bg-[#283361] rounded-[40px] p-10 shadow-2xl border border-white/5">
           <h2 className="text-3xl font-bold mb-2 text-center tracking-tight">Welcome</h2>
           <p className="text-gray-400 text-center mb-8">Let's personalize your experience</p>
           
           <div className="space-y-4">
             <input 
-              className="w-full bg-[#0A0F2C] p-4 rounded-2xl outline-none border border-white/5 focus:border-blue-500 transition-all" 
+              className="w-full bg-[#0A0F2C] p-4 rounded-2xl outline-none border border-white/5 focus:border-[#8191d4] transition-all" 
               placeholder="What is your name?" value={fName} onChange={(e) => setFName(e.target.value)} 
             />
 
             <div className="flex gap-4">
               <input 
                 type="number"
-                className='w-1/2 bg-[#0A0F2C] p-4 rounded-2xl outline-none border border-white/5 focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
+                className='w-1/2 bg-[#0A0F2C] p-4 rounded-2xl outline-none border border-white/5 focus:border-[#8191d4] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
                 placeholder='Age' value={fAge}
                 onChange={(e) => {
                   const val = parseInt(e.target.value);
@@ -322,7 +322,7 @@ export default function Home() {
               />
               <input 
                 type="number"
-                className='w-1/2 bg-[#0A0F2C] p-4 rounded-2xl outline-none border border-white/5 focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
+                className='w-1/2 bg-[#0A0F2C] p-4 rounded-2xl outline-none border border-white/5 focus:border-[#8191d4] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
                 placeholder='Height (cm)' value={fHeight}
                 onChange={(e) => {
                   const val = parseInt(e.target.value);
@@ -333,28 +333,28 @@ export default function Home() {
             </div>
 
             {!isCustomTrigger ? (
-              <select className='w-full bg-[#0A0F2C] p-4 rounded-2xl outline-none border border-white/5' value={fTrigger} onChange={(e) => e.target.value === "custom" ? setIsCustomTrigger(true) : setFTrigger(e.target.value)}>
+              <select className='w-full h-12 bg-[#0A0F2C] p-4 rounded-2xl outline-none border border-white/5' value={fTrigger} onChange={(e) => e.target.value === "custom" ? setIsCustomTrigger(true) : setFTrigger(e.target.value)}>
                 <option value="">Main Stress Trigger?</option>
                 <option value="Work Pressure">Work Pressure</option>
                 <option value="Academic Exams">Academic Exams</option>
                 <option value="custom">+ Customize Option</option>
               </select>
             ) : (
-              <input className="w-full bg-[#0A0F2C] p-4 rounded-2xl outline-none border border-blue-500 animate-in fade-in" placeholder="Type custom trigger..." autoFocus value={fTrigger} onChange={(e) => setFTrigger(e.target.value)} />
+              <input className="w-full bg-[#0A0F2C] p-4 rounded-2xl outline-none border border-[#8191d4] animate-in fade-in" placeholder="Type custom trigger..." autoFocus value={fTrigger} onChange={(e) => setFTrigger(e.target.value)} />
             )}
 
             {!isCustomGoal ? (
-              <select className="w-full bg-[#0A0F2C] p-4 rounded-2xl outline-none border border-white/5" value={fGoal} onChange={(e) => e.target.value === "custom" ? setIsCustomGoal(true) : setFGoal(e.target.value)}>
+              <select className="w-full h-12 bg-[#0A0F2C] p-4 rounded-2xl outline-none border border-white/5" value={fGoal} onChange={(e) => e.target.value === "custom" ? setIsCustomGoal(true) : setFGoal(e.target.value)}>
                 <option value="">What is your goal?</option>
                 <option value="Reduce Anxiety">Reduce Anxiety</option>
                 <option value="Better Sleep">Better Sleep</option>
                 <option value="custom">+ Customize Option</option>
               </select>
             ) : (
-              <input className="w-full bg-[#0A0F2C] p-4 rounded-2xl outline-none border border-blue-500 animate-in fade-in" placeholder="Type custom goal..." autoFocus value={fGoal} onChange={(e) => setFGoal(e.target.value)} />
+              <input className="w-full bg-[#0A0F2C] p-4 rounded-2xl outline-none border border-[#8191d4] animate-in fade-in" placeholder="Type custom goal..." autoFocus value={fGoal} onChange={(e) => setFGoal(e.target.value)} />
             )}
 
-            <button onClick={handleSaveProfile} className="w-full py-4 bg-blue-600 hover:bg-blue-500 rounded-2xl font-bold mt-4 shadow-lg shadow-blue-900/40 transition-all">Complete Setup</button>
+            <button onClick={handleSaveProfile} className="w-full py-4 bg-[#8191d4] hover:bg-[#afb9e3] rounded-2xl font-bold mt-4 shadow-lg shadow-blue-900/40 transition-all">Complete Setup</button>
           </div>
         </div>
       </div>
@@ -368,8 +368,8 @@ export default function Home() {
         <div className="text-lg font-bold tracking-tight">Stress Detection Application</div>
         <div className="flex items-center gap-12">
           <div className='flex gap-12 text-sm font-bold tracking-widest'>
-            <Link href="/" className="text-blue-400">LIVE MONITORING</Link>
-            <Link href="/dashboard" className="hover:text-blue-400 transition-colors">HISTORY</Link>
+            <Link href="/" className="text-[#8191d4]">LIVE MONITORING</Link>
+            <Link href="/dashboard" className="hover:text-[#8191d4] transition-colors">HISTORY</Link>
           </div>
           <button onClick={() => setIsProfileOpen(true)} className='bg-white/10 p-2 px-6 rounded-full border border-white/20 hover:bg-white/20 transition-all text-xs font-bold tracking-widest'>PROFILE SETTINGS</button>
         </div>
@@ -399,7 +399,7 @@ export default function Home() {
                       setSelectedLabel(type);
                       setIsLabelModalOpen(false);
                     }}
-                    className={`py-3 rounded-xl font-semibold transition-all ${selectedLabel === type ? 'bg-blue-600' : 'bg-white/5 hover:bg-white/10'}`}
+                    className={`py-3 rounded-xl font-semibold transition-all ${selectedLabel === type ? 'bg-[#8191d4]' : 'bg-white/5 hover:bg-white/10'}`}
                   >
                     {displayActivityLabel(type)}
                   </button>
@@ -408,7 +408,7 @@ export default function Home() {
                   <input
                     type="text"
                     placeholder="+ Add custom activity"
-                    className="w-full bg-white/5 p-3 rounded-xl outline-none border border-white/5 focus:border-blue-500"
+                    className="w-full bg-white/5 p-3 rounded-xl outline-none border border-white/5 focus:border-[#8191d4]"
                     value={customActivityInput}
                     onChange={(e) => setCustomActivityInput(e.target.value)}
                     onKeyDown={(e) => {
@@ -474,12 +474,12 @@ export default function Home() {
               <h3 className="text-3xl font-bold mb-8 text-center">FAQ</h3>
               <div className="space-y-6 flex-grow">
                 {FAQ_DATABASE.map((item) => (
-                  <button key={item.id} onClick={() => setSelectedFaqId(item.id)} className='w-full text-left font-bold text-lg hover:text-blue-300 transition-colors flex justify-between'>
+                  <button key={item.id} onClick={() => setSelectedFaqId(item.id)} className='w-full text-left font-bold text-lg hover:text-[#8191d4] transition-colors flex justify-between'>
                     <span>{item.q}</span><span>→</span>
                   </button>
                 ))}
               </div>
-              <Link href="/tips" className='mt-12 text-lg font-bold underline underline-offset-8 decoration-2 hover:text-blue-200 transition-all text-center'>Quick Tips to release stress</Link>
+              <Link href="/tips" className='mt-12 text-lg font-bold underline underline-offset-8 decoration-2 hover:text-[#8191d4] transition-all text-center'>Quick Tips to release stress</Link>
             </div>
           </div>
         )}
@@ -491,29 +491,29 @@ export default function Home() {
               <div className='space-y-6 text-left'>
                 <div className='space-y-1'>
                   <label className='text-[10px] uppercase font-bold opacity-40 ml-2 tracking-widest'>Age</label>
-                  <input type="number" className='w-full bg-[#0A0F2C] p-4 rounded-xl border border-white/5 focus:border-blue-500 outline-none [appearance:textfield]' value={fAge} onChange={(e) => {
+                  <input type="number" className='w-full bg-[#0A0F2C] p-4 rounded-xl border border-white/5 focus:border-[#8191d4] outline-none [appearance:textfield]' value={fAge} onChange={(e) => {
                     const val = parseInt(e.target.value);
                     if (e.target.value === "") setFAge(""); else if (val >= 0 && val <= 99) setFAge(val.toString());
                   }} />
                 </div>
                 <div className='space-y-1'>
                   <label className='text-[10px] uppercase font-bold opacity-40 ml-2 tracking-widest'>Height (cm)</label>
-                  <input type="number" className='w-full bg-[#0A0F2C] p-4 rounded-xl border border-white/5 focus:border-blue-500 outline-none [appearance:textfield]' value={fHeight} onChange={(e) => {
+                  <input type="number" className='w-full bg-[#0A0F2C] p-4 rounded-xl border border-white/5 focus:border-[#8191d4] outline-none [appearance:textfield]' value={fHeight} onChange={(e) => {
                     const val = parseInt(e.target.value);
                     if (e.target.value === "") setFHeight(""); else if (val >= 0 && val <= 200) setFHeight(val.toString());
                   }} />
                 </div>
                 <div className='space-y-1'>
                   <label className='text-[10px] uppercase font-bold opacity-40 ml-2 tracking-widest'>Stress Trigger</label>
-                  <input className='w-full bg-[#0A0F2C] p-4 rounded-xl border border-white/5 focus:border-blue-500 outline-none' value={fTrigger} onChange={(e) => setFTrigger(e.target.value)} />
+                  <input className='w-full bg-[#0A0F2C] p-4 rounded-xl border border-white/5 focus:border-[#8191d4] outline-none' value={fTrigger} onChange={(e) => setFTrigger(e.target.value)} />
                 </div>
                 <div className='space-y-1'>
                   <label className='text-[10px] uppercase font-bold opacity-40 ml-2 tracking-widest'>Main Goal</label>
-                  <input className='w-full bg-[#0A0F2C] p-4 rounded-xl border border-white/5 focus:border-blue-500 outline-none' value={fGoal} onChange={(e) => setFGoal(e.target.value)} />
+                  <input className='w-full bg-[#0A0F2C] p-4 rounded-xl border border-white/5 focus:border-[#8191d4] outline-none' value={fGoal} onChange={(e) => setFGoal(e.target.value)} />
                 </div>
           
                 <div className='flex gap-4 pt-4'>
-                  <button onClick={handleSaveProfile} className='flex-1 py-4 bg-blue-600 rounded-2xl font-bold hover:bg-blue-500 transition-all'>
+                  <button onClick={handleSaveProfile} className='flex-1 py-4 bg-[#8191d4] rounded-2xl font-bold hover:bg-[#afb9e3] transition-all'>
                     Save Changes
                   </button>
                   <button onClick={() => setIsProfileOpen(false)} className='flex-1 py-4 bg-white/5 rounded-2xl font-bold'>
