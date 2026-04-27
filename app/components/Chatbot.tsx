@@ -166,13 +166,13 @@ const Chatbot: React.FC = () => {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendMessage(input)}
               placeholder="Type message..."
-              className="flex-1 bg-[#0A0F2C] text-white rounded-xl px-4 py-3 outline-none border border-white/5 text-sm"
-              disabled={isLoading}
+              className="flex-1 bg-[#0A0F2C] text-white rounded-xl px-4 py-3 outline-none border border-white/5 focus:border-[#9ea7db] transition-all text-sm"
+                disabled={isLoading}
             />
             <button
               onClick={() => sendMessage(input)}
               disabled={isLoading || !input.trim()}
-              className="bg-[#9298b3] text-white px-5 rounded-xl font-bold text-sm"
+              className="bg-[#868cb5] text-white px-5 rounded-xl font-bold text-sm hover:bg-[#9fa4c4] border-white/5 focus:border-[#9ea7db] disabled:cursor-not-allowed disabled:opacity-60 transition-all active:scale-95"
             >
               Send
             </button>
