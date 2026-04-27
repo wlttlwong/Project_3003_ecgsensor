@@ -8,10 +8,11 @@ ChartJS.register(ArcElement);
 interface SessionSummaryProps {
   avgHR: number;
   maxHR: number;
-  avgHRV: number;
-  duration: number;
+  avgHRV: number; // This is the RMSSD value
+  duration: number; // Expected in seconds
   stressScore: number;
-  stressLevel: "Low" | "Medium" | "High" | "Critical";
+  // Updated to match your new RMSSD logic labels
+  stressLevel: "Relaxed" | "Moderate" | "High Stress" | "Critical"; 
   notes?: string;
   breathingCount?: number;
   stretchingCount?: number;
@@ -32,12 +33,19 @@ const SessionSummary: React.FC<SessionSummaryProps> = ({
 }) => {
   const [userNotes, setUserNotes] = useState(notes);
 
-  // Colors for arc based on stress level
+  // Helper to format seconds into MM:SS
+  const formatDuration = (totalSeconds: number) => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Colors synced with your new logic
   const arcColors: Record<string, string> = {
-    Low: "#22c55e",      // green-500
-    Medium: "#eab308",   // yellow-500
-    High: "#ef4444",     // red-500
-    Critical: "#7f1d1d", // dark red
+    Relaxed: "#10b981",     // emerald-500
+    Moderate: "#f59e0b",    // amber-500
+    "High Stress": "#ef4444", // red-500
+    Critical: "#7f1d1d",    // dark red
   };
 
   const chartData = {
@@ -45,9 +53,9 @@ const SessionSummary: React.FC<SessionSummaryProps> = ({
     datasets: [
       {
         data: [stressScore, 100 - stressScore],
-        backgroundColor: [arcColors[stressLevel], "transparent"],
-        borderColor: [arcColors[stressLevel], arcColors[stressLevel]],
-        borderWidth: 4,
+        backgroundColor: [arcColors[stressLevel] || "#6366f1", "transparent"],
+        borderColor: [arcColors[stressLevel] || "#6366f1", "rgba(255,255,255,0.1)"],
+        borderWidth: 2,
       },
     ],
   };
@@ -60,117 +68,110 @@ const SessionSummary: React.FC<SessionSummaryProps> = ({
       legend: { display: false },
       tooltip: { enabled: false },
     },
+    maintainAspectRatio: false,
   };
 
   const levelColors: Record<string, string> = {
-    Low: "text-green-400",
-    Medium: "text-yellow-400",
-    High: "text-red-500",
-    Critical: "text-red-700",
+    Relaxed: "text-emerald-400",
+    Moderate: "text-amber-400",
+    "High Stress": "text-rose-500",
+    Critical: "text-rose-700",
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#0A0F2C] flex flex-col items-center font-sans text-white p-10">
-      <h2 className="text-4xl font-bold">Session Summary</h2>
+    <div className="min-h-screen w-full bg-[#0A0F2C] flex flex-col items-center font-sans text-white p-6 md:p-10">
+      <h2 className="text-4xl font-bold mb-4 tracking-tight">Session Summary</h2>
+      <p className="text-slate-400 mb-8">Detailed physiological analysis of your trial.</p>
 
-      {/* Stress Score semicircle with overlay */}
-      <div className="relative flex flex-col items-center">
-        <div className="w-96 h-96">
+      {/* Stress Score semicircle */}
+      <div className="relative flex flex-col items-center mb-10">
+        <div className="w-72 h-48 md:w-96 md:h-64">
           <Doughnut data={chartData} options={chartOptions} />
         </div>
 
         {/* Overlayed score + labels */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center translate-y-[30px]">
-          <span className="text-7xl font-extrabold text-white drop-shadow">
-            {stressScore}
+        <div className="absolute inset-0 flex flex-col items-center justify-center translate-y-[20px] md:translate-y-[40px]">
+          <span className="text-6xl md:text-7xl font-extrabold text-white">
+            {Math.round(stressScore)}
           </span>
-          <span className="text-xs text-gray-300 tracking-wide mt-1">
-            STRESS LEVEL
+          <span className="text-[10px] text-gray-400 tracking-[0.2em] font-bold uppercase mt-1">
+            Stress Intensity
           </span>
-          <span className={`mt-1 text-4xl font-bold ${levelColors[stressLevel]}`}>
+          <span className={`mt-2 text-2xl md:text-3xl font-black uppercase tracking-tighter ${levelColors[stressLevel]}`}>
             {stressLevel}
           </span>
         </div>
       </div>
 
-      {/* Metrics */}
-      <div className="grid grid-cols-3 gap-6 mb-6 w-full max-w-4xl text-center">
-        <div className="bg-[#5C66A3] rounded-lg p-6">
-          <p className="text-xs tracking-wider font-semibold mb-2">AVERAGE HEART RATE</p>
-          <p className="text-2xl font-bold">
-            <span className="text-white">{avgHR}</span>{" "}
-            <span className="text-gray-400">bpm</span>
-          </p>
-        </div>
-        <div className="bg-[#5C66A3] rounded-lg p-6">
-          <p className="text-xs tracking-wider font-semibold mb-2">MAX HEART RATE</p>
-          <p className="text-2xl font-bold">
-            <span className="text-white">{maxHR}</span>{" "}
-            <span className="text-gray-400">bpm</span>
-          </p>
-        </div>
-        <div className="bg-[#5C66A3] rounded-lg p-6">
-          <p className="text-xs tracking-wider font-semibold mb-2">AVERAGE HRV</p>
-          <p className="text-2xl font-bold">
-            <span className="text-white">{avgHRV}</span>{" "}
-            <span className="text-gray-400">ms</span>
-          </p>
-        </div>
+      {/* Primary Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 w-full max-w-4xl">
+        <MetricCard label="AVERAGE HEART RATE" value={Math.round(avgHR)} unit="bpm" />
+        <MetricCard label="MAX HEART RATE" value={maxHR} unit="bpm" />
+        <MetricCard label="AVERAGE RMSSD (HRV)" value={avgHRV.toFixed(1)} unit="ms" />
       </div>
 
       {/* Duration + Exercises */}
-      <div className="grid grid-cols-3 gap-6 mb-6 w-full max-w-4xl">
-        <div className="bg-[#5C66A3] rounded-lg p-6 text-center">
-          <p className="text-xs tracking-wider font-semibold mb-2">SESSION DURATION</p>
-          <p className="text-2xl font-bold">
-            <span className="text-white">{duration}</span>{" "}
-            <span className="text-gray-400">minutes</span>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 w-full max-w-4xl">
+        <div className="bg-[#5C66A3]/40 border border-white/10 rounded-2xl p-6 text-center">
+          <p className="text-[10px] tracking-widest font-bold text-slate-300 mb-2 uppercase">SESSION DURATION</p>
+          <p className="text-3xl font-bold">
+            <span className="text-white">{formatDuration(duration)}</span>
           </p>
+          <p className="text-xs text-slate-400 mt-1">MM:SS</p>
         </div>
 
-        {/* Exercises Completed card */}
-        <div className="col-span-2 bg-[#5C66A3] rounded-lg p-6">
-          <p className="text-xs tracking-wider font-semibold mb-4 text-center">EXERCISES COMPLETED</p>
+        <div className="md:col-span-2 bg-[#5C66A3]/40 border border-white/10 rounded-2xl p-6">
+          <p className="text-[10px] tracking-widest font-bold text-slate-300 mb-4 text-center uppercase">BIOFEEDBACK ENGAGEMENT</p>
           <div className="flex justify-evenly">
-            <div className="flex flex-col items-center">
-              <p className="text-xs tracking-wider font-semibold mb-2">BREATHING</p>
-              <p className="text-4xl font-extrabold text-white">
-                {breathingCount}{" "}
-                <span className="text-gray-400 text-lg font-semibold">rounds</span>
-              </p>
+            <div className="text-center">
+              <p className="text-[10px] font-bold text-slate-400 mb-1">BREATHING</p>
+              <p className="text-3xl font-black text-white">{breathingCount}</p>
+              <p className="text-[10px] text-slate-400 uppercase">Rounds</p>
             </div>
-            <div className="flex flex-col items-center">
-              <p className="text-xs tracking-wider font-semibold mb-2">STRETCHING</p>
-              <p className="text-4xl font-extrabold text-white">
-                {stretchingCount}{" "}
-                <span className="text-gray-400 text-lg font-semibold">rounds</span>
-              </p>
+            <div className="w-[1px] bg-white/10 h-full mx-2"></div>
+            <div className="text-center">
+              <p className="text-[10px] font-bold text-slate-400 mb-1">STRETCHING</p>
+              <p className="text-3xl font-black text-white">{stretchingCount}</p>
+              <p className="text-[10px] text-slate-400 uppercase">Rounds</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Notes */}
-      <div className="bg-[#5C66A3] rounded-lg p-6 w-full max-w-4xl mb-10 text-center">
-        <p className="text-xs tracking-wider font-semibold mb-2">NOTES</p>
+      <div className="bg-[#5C66A3]/40 border border-white/10 rounded-2xl p-6 w-full max-w-4xl mb-10">
+        <p className="text-[10px] tracking-widest font-bold text-slate-300 mb-3 uppercase text-center">SESSION OBSERVATIONS</p>
         <textarea
           value={userNotes}
           onChange={(e) => setUserNotes(e.target.value)}
-          placeholder="Type your session description..."
-          className="w-full p-3 rounded-md text-black"
-          rows={4}
+          placeholder="Enter qualitative data here (e.g. caffeine intake, environmental noise)..."
+          className="w-full p-4 rounded-xl bg-[#0A0F2C]/50 border border-white/10 text-white placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+          rows={3}
         />
       </div>
 
       {/* Back button */}
       <button
         onClick={onBack}
-        className="mt-4 px-10 py-4 bg-blue-500 text-white rounded-full shadow hover:bg-blue-600 text-lg font-bold"
+        className="px-12 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shadow-2xl transition-all transform hover:scale-105 text-lg font-black uppercase tracking-wider"
       >
-        Exit to Homepage
+        Save & Exit to Dashboard
       </button>
     </div>
   );
 };
+
+// Reusable Metric Card for cleaner code
+function MetricCard({ label, value, unit }: { label: string, value: string | number, unit: string }) {
+  return (
+    <div className="bg-[#5C66A3]/40 border border-white/10 rounded-2xl p-6 text-center shadow-lg">
+      <p className="text-[10px] tracking-widest font-bold text-slate-300 mb-2 uppercase">{label}</p>
+      <p className="text-3xl font-black">
+        <span className="text-white">{value}</span>
+        <span className="text-slate-400 text-sm ml-1 font-bold">{unit}</span>
+      </p>
+    </div>
+  );
+}
 
 export default SessionSummary;
