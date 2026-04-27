@@ -134,6 +134,7 @@ export async function POST(request: NextRequest) {
       avgHr: parseOptionalNumber(body.avgHr),
       maxHr: parseOptionalNumber(body.maxHr),
       avgHrvMs: parseOptionalNumber(body.avgHrvMs),
+      stressScore: parseOptionalNumber(body.stressScore) || 0,
       stressSummary: body.stressSummary.trim(),
       createdAt: now,
       updatedAt: now,

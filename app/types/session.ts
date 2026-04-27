@@ -27,6 +27,8 @@ export interface SessionRecord {
   avgHrvMs: number | null;
   /** Short fitness summary line for the table (not a clinical diagnosis) */
   stressSummary: string;
+  stressScore: number;
+  stressLevel: "Low" | "Medium" | "High";
 }
 
 export interface PeriodStats {

@@ -7,6 +7,7 @@ export interface AuthUser {
 export interface UserProfile {
   userId: string;
   age: number | null;
+  height: number | null;
   goals: string[];
   stressTriggers: string[];
   maxHeartRate: number | null;

@@ -3,12 +3,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthPayloadFromRequest } from "../../../lib/server/auth";
 import { mutateDatabase, readDatabase } from "../../../lib/server/store";
 
-function sanitizeStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .filter((item): item is string => typeof item === "string")
-    .map((item) => item.trim())
-    .filter(Boolean);
+function ensureStringArray(value: unknown): string[] {
+  if (typeof value === "string") return [value.trim()].filter(Boolean);
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return [];
 }
 
 export async function GET(request: NextRequest) {
@@ -47,6 +50,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as {
       age?: unknown;
+      height?: unknown;
       goals?: unknown;
       stressTriggers?: unknown;
       maxHeartRate?: unknown;
@@ -58,17 +62,25 @@ export async function POST(request: NextRequest) {
         return { error: "Profile not found." } as const;
       }
 
+      // 1. Merge Age (Convert string to number)
       if (body.age !== undefined) {
-        profile.age =
-          typeof body.age === "number" && Number.isFinite(body.age) ? body.age : null;
+        profile.age = Number(body.age) || null;
       }
 
+      // 2. Merge Height (Convert string to number)
+      if (body.height !== undefined) {
+        profile.height = Number(body.height) || null;
+      }
+
+      // 3. Merge Goals (Convert your single string to their array)
       if (body.goals !== undefined) {
-        profile.goals = sanitizeStringArray(body.goals);
+        profile.goals = ensureStringArray(body.goals);
       }
 
-      if (body.stressTriggers !== undefined) {
-        profile.stressTriggers = sanitizeStringArray(body.stressTriggers);
+      // 4. Merge Stress Triggers (Map your 'stressTrigger' to their 'stressTriggers')
+      const triggerInput = body.stressTriggers || body.stressTriggers;
+      if (triggerInput !== undefined) {
+        profile.stressTriggers = ensureStringArray(triggerInput);
       }
 
       if (body.maxHeartRate !== undefined) {
