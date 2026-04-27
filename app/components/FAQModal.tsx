@@ -71,7 +71,7 @@ export const FAQ_DATABASE: FAQItem[] = [
         title: "What is Heart Rate Variability (HRV)?",
         headerColor: "bg-[#FFD1DC]",
         icon: "❤️",
-        description: "HRV is the small change in time between one heartbeat and the next. Unlike heart rate (which counts beats per minute), HRV shows how flexible your heart rhythm is.\n\n**High HRV** usually means your body is relaxed and adapting well. **Low HRV** often happens when you are stressed, tired, or under strain. As we age, our typical HRV range naturally declines, which is why we compare your data against age-related norms.",
+        description: "HRV is the small change in time between one heartbeat and the next. Unlike heart rate (which counts beats per minute), HRV shows how flexible your heart rhythm is.\n\nHigh HRV usually means your body is relaxed and adapting well. Low HRV often happens when you are stressed, tired, or under strain. \n\nAs we age, our typical HRV range naturally declines, which is why we compare your data against age-related norms.",
         references: [
             "Shaffer, F., & Ginsberg, J. P. (2017). An Overview of Heart Rate Variability Metrics and Norms.",
             "What is Heart Rate Variability? (2026). WHOOP Guide.",
