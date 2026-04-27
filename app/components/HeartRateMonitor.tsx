@@ -42,8 +42,18 @@ const HeartRateMonitor: React.FC<MonitorControlsProps> = ({
     setSessionStart(Date.now());
     setSessionDuration(0);
     setHrValues([]);
+    setAvgHR(0);
+    setMaxHR(0);
+    setAvgHRV(0);
+    setStressLevel("Normal");
+    setShowBreathingPrompt(false);
     criticalHandledRef.current = false;
   }
+
+  const handleStartMonitoring = useCallback(async () => {
+    startSession();
+    await startECGStream();
+  }, [startECGStream]);
 
   const saveSessionLog = useCallback(
     (duration: number) => {
@@ -185,14 +195,14 @@ const HeartRateMonitor: React.FC<MonitorControlsProps> = ({
 
               {!isECGStreaming ? (
                 <button
-                  onClick={startECGStream}
+                  onClick={() => void handleStartMonitoring()}
                   className="rounded-full bg-green-500 px-4 py-2 font-bold text-white transition duration-300 ease-in-out hover:scale-105 hover:bg-green-600"
                 >
                   Start ECG Stream
                 </button>
               ) : (
                 <button
-                  onClick={stopECGStream}
+                  onClick={() => void endSession()}
                   className="rounded-full bg-yellow-500 px-4 py-2 font-bold text-white transition duration-300 ease-in-out hover:scale-105 hover:bg-yellow-600"
                 >
                   Stop ECG Stream
