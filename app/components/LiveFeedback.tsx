@@ -13,23 +13,43 @@ const LiveFeedback: React.FC<LiveFeedbackProps> = ({ avgHR, avgHRV }) => {
   const isHighStress = avgHR > 100 && avgHRV < 50;
 
   // Flow states
-  const [showAlert, setShowAlert] = useState(isHighStress);
+  const [showAlert, setShowAlert] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showBreathing, setShowBreathing] = useState(false);
   const [showStretching, setShowStretching] = useState(false);
+  const [highStressFor5s, setHighStressFor5s] = useState(false);
+
+  useEffect(() => {
+    if (!isHighStress) {
+      setHighStressFor5s(false);
+      return;
+    }
+
+    const id = window.setTimeout(() => {
+      setHighStressFor5s(true);
+    }, 5000);
+
+    return () => window.clearTimeout(id);
+  }, [isHighStress]);
+
+  useEffect(() => {
+    if (highStressFor5s) {
+      setShowAlert(true);
+    }
+  }, [highStressFor5s]);
 
   // Play sound when alert is shown
   useEffect(() => {
-    if (showAlert && isHighStress) {
+    if (showAlert && highStressFor5s) {
       const audio = new Audio("/sounds/alert.mp3"); // place file in public/sounds/
       audio.play().catch((err) => console.error("Audio play failed:", err));
     }
-  }, [showAlert, isHighStress]);
+  }, [showAlert, highStressFor5s]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#0A0F2C] font-sans text-white">
       {/* Stress Alert Window */}
-      {showAlert && isHighStress && (
+      {showAlert && highStressFor5s && (
         <div className="bg-[#0A0F2C] shadow-lg rounded-lg p-6 max-w-md w-full text-center">
           <h2 className="text-4xl font-extrabold mb-2">Stress levels are high!</h2>
           <p className="text-lg mb-6">It’s time to take a break.</p>
