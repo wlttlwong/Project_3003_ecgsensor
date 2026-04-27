@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from "next/navigation";
 import { useHeartRateSensor } from './hooks/useHeartRateSensor';
-import { getUserProfile, updateUserProfile } from "./lib/apiClient";
-import { clearAuthSession, getStoredUser } from "./lib/auth";
+import { getSessions, getUserProfile, updateUserProfile } from "./lib/apiClient";
+import { clearAuthSession, getStoredUser, getToken } from "./lib/auth";
+import { loadSessions } from "./lib/sessions";
 import { useUserStore } from './store/userStore';
 import HeartRateMonitor from './components/HeartRateMonitor';
 import ECGChart from './components/ECGChart';
@@ -111,12 +112,35 @@ export default function Home() {
       setOnboardingRequired(hasAuthToken && onboardingFlag);
 
       const savedTime = localStorage.getItem("lastSessionEndTime");
-      if (savedTime) {
-        setLastSessionEndTime(savedTime);
-        setLastSessionDuration(parseInt(localStorage.getItem("duration") || "0"));
-        setLastAvgHRV(parseInt(localStorage.getItem("avgHRV") || "0"));
-        setLastAvgHR(parseInt(localStorage.getItem("avgHR") || "0"));
-        setLastStressScore(parseInt(localStorage.getItem("stressScore") || "0"));
+      if (savedTime) setLastSessionEndTime(savedTime);
+
+      const hydrateRecentSession = async () => {
+        const token = getToken();
+        if (token) {
+          const response = await getSessions({ limit: 1, offset: 0 });
+          const latest = response.sessions?.[0];
+          if (!latest) return;
+          setLastSessionEndTime(new Date(latest.endedAt).toLocaleString());
+          setLastSessionDuration(Math.max(1, Math.round(latest.durationSec / 60)));
+          setLastAvgHRV(Math.round(latest.avgHrvMs ?? 0));
+          setLastAvgHR(Math.round(latest.avgHr ?? 0));
+          setLastStressScore(Math.round(latest.stressScore ?? 0));
+          return;
+        }
+
+        const localLatest = loadSessions()[0];
+        if (!localLatest) return;
+        setLastSessionEndTime(new Date(localLatest.endedAt).toLocaleString());
+        setLastSessionDuration(Math.max(1, Math.round(localLatest.durationSec / 60)));
+        setLastAvgHRV(Math.round(localLatest.avgHrvMs ?? 0));
+        setLastAvgHR(Math.round(localLatest.avgHr ?? 0));
+        setLastStressScore(Math.round(localLatest.stressScore ?? 0));
+      };
+
+      try {
+        await hydrateRecentSession();
+      } catch {
+        // Keep UI functional even when API is unavailable.
       }
 
       if (!hasAuthToken) return;

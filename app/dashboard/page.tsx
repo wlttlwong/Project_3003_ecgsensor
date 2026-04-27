@@ -26,7 +26,7 @@ import { formatApproxHrZone } from "../lib/hrZones";
 import { getStressLevel, getStressCellClasses } from "../lib/stress";
 import type { AuthUser } from "../types/user";
 
-type CalendarMode = "weekly" | "monthly" | "yearly";
+type CalendarMode = "daily" | "weekly" | "monthly" | "yearly";
 
 const WEEKDAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
 const HOUR_MARKERS = [0, 6, 12, 18];
@@ -63,6 +63,10 @@ function startOfWeekMonday(d: Date): Date {
 }
 
 function getRangeForMode(mode: CalendarMode, anchor: Date): { start: Date; end: Date } {
+  if (mode === "daily") {
+    const start = startOfDay(anchor);
+    return { start, end: addDays(start, 1) };
+  }
   if (mode === "weekly") {
     const start = startOfWeekMonday(anchor);
     return { start, end: addDays(start, 7) };
@@ -78,6 +82,14 @@ function getRangeForMode(mode: CalendarMode, anchor: Date): { start: Date; end: 
 }
 
 function formatRangeLabel(mode: CalendarMode, start: Date, end: Date): string {
+  if (mode === "daily") {
+    return start.toLocaleDateString(undefined, {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  }
   if (mode === "weekly") {
     const endInclusive = addDays(end, -1);
     return `${start.toLocaleDateString(undefined, {
@@ -524,6 +536,7 @@ export default function DashboardPage() {
   );
   const moveCalendar = (dir: -1 | 1) => {
     setCalendarAnchor((prev) => {
+      if (calendarMode === "daily") return addDays(prev, dir);
       if (calendarMode === "weekly") return addDays(prev, dir * 7);
       if (calendarMode === "monthly") return addMonths(prev, dir);
       return addYears(prev, dir);
@@ -598,7 +611,7 @@ export default function DashboardPage() {
           <div className="space-y-5">
             <h2 className="text-4xl font-bold text-white tracking-tight">Trends</h2>
             <div className="flex flex-wrap gap-2 rounded-full bg-[#1e293b] p-1 w-fit">
-              {(["weekly", "monthly", "yearly"] as const).map((mode) => (
+              {(["daily", "weekly", "monthly", "yearly"] as const).map((mode) => (
                 <button
                   key={mode}
                   type="button"
@@ -765,7 +778,7 @@ export default function DashboardPage() {
                 
                 {/* Time Period Selector */}
                 <div className="flex flex-wrap items-center gap-3 mb-6">
-                  {(["weekly", "monthly", "yearly"] as const).map((mode) => (
+                  {(["daily", "weekly", "monthly", "yearly"] as const).map((mode) => (
                     <button
                       key={mode}
                       type="button"
@@ -812,7 +825,9 @@ export default function DashboardPage() {
                       : "— ms"}
                   </p>
                   <p className="text-base text-slate-300 mb-3">
-                    {calendarMode === "weekly"
+                    {calendarMode === "daily"
+                      ? "Daily"
+                      : calendarMode === "weekly"
                       ? "Weekly"
                       : calendarMode === "monthly"
                       ? "Monthly"
