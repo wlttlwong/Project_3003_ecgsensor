@@ -20,7 +20,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      router.push("/dashboard");
+      router.push("/session");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to sign in.");
     } finally {
@@ -32,7 +32,7 @@ export default function LoginPage() {
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 px-4 py-12 text-white">
       <div className="mx-auto max-w-md rounded-3xl border border-white/10 bg-white/10 p-8 shadow-2xl backdrop-blur">
         <div className="space-y-3">
-          <Link href="/" className="text-sm text-emerald-300 hover:text-emerald-200">
+          <Link href="/session" className="text-sm text-emerald-300 hover:text-emerald-200">
             Back to live monitor
           </Link>
           <h1 className="text-3xl font-bold tracking-tight">Sign in</h1>

@@ -577,13 +577,13 @@ export default function DashboardPage() {
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto lg:min-w-[320px]">
             <Link
-              href="/"
+              href="/session"
               className="inline-flex items-center justify-center rounded-xl border border-slate-500 bg-[#1e293b] text-slate-100 font-medium px-5 py-3.5 hover:bg-slate-700 transition"
             >
               Back to main page
             </Link>
             <Link
-              href="/"
+              href="/session"
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-6 py-3.5 shadow-lg shadow-emerald-500/25 transition text-center"
             >
               <svg
@@ -1038,7 +1038,7 @@ export default function DashboardPage() {
                 or cycling — to see heart rate trends and recovery insights here.
               </p>
               <Link
-                href="/"
+                href="/session"
                 className="inline-flex items-center justify-center rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold px-8 py-4 text-lg shadow-lg shadow-emerald-500/30 transition"
               >
                 Connect ECG &amp; start session

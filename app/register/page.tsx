@@ -21,7 +21,7 @@ export default function RegisterPage() {
 
     try {
       await register(email, password, age ? Number(age) : undefined);
-      router.push("/dashboard");
+      router.push("/session");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to create account.");
     } finally {
@@ -33,7 +33,7 @@ export default function RegisterPage() {
     <main className="min-h-screen bg-gradient-to-br from-amber-100 via-white to-emerald-100 px-4 py-12">
       <div className="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
         <div className="space-y-3">
-          <Link href="/" className="text-sm text-slate-500 hover:text-slate-700">
+          <Link href="/session" className="text-sm text-slate-500 hover:text-slate-700">
             Back to live monitor
           </Link>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">
