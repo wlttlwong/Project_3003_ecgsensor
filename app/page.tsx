@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useHeartRateSensor } from './hooks/useHeartRateSensor';
+import { updateUserProfile } from "./lib/apiClient";
 import { useUserStore } from './store/userStore';
 import HeartRateMonitor from './components/HeartRateMonitor';
 import ECGChart from './components/ECGChart';
@@ -60,9 +61,11 @@ const StressGauge = ({ score }: { score: number }) => {
 
 export default function Home() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { username, age, height, stressTrigger, goals, setUser } = useUserStore();
   const [isHydrated, setIsHydrated] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
+  const [onboardingRequired, setOnboardingRequired] = useState(false);
 
   // Form states
   const [fName, setFName] = useState("");
@@ -97,7 +100,12 @@ export default function Home() {
   useEffect(() => {
     setIsHydrated(true);
     const hasAuthToken = typeof window !== "undefined" && !!localStorage.getItem("authToken");
+    const onboardingFlag =
+      searchParams.get("onboarding") === "1" ||
+      (typeof window !== "undefined" &&
+        sessionStorage.getItem("onboardingAfterRegister") === "1");
     setShowSplash(!hasAuthToken);
+    setOnboardingRequired(hasAuthToken && onboardingFlag);
     if (username) {
       setFName(username);
       setFAge(age || "");
@@ -113,16 +121,33 @@ export default function Home() {
       setLastAvgHR(parseInt(localStorage.getItem("avgHR") || "0"));
       setLastStressScore(parseInt(localStorage.getItem("stressScore") || "0"));
     }
-  }, [username, age, height, stressTrigger, goals]);
+  }, [username, age, height, stressTrigger, goals, searchParams]);
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     if (!fName.trim() || !fAge.trim() || !fHeight.trim() || !fTrigger.trim() || !fGoal.trim()) {
       return alert("Please fill all fields");
     }
+
+    try {
+      await updateUserProfile({
+        age: Number(fAge),
+        height: Number(fHeight),
+        goals: [fGoal],
+        stressTriggers: [fTrigger],
+      });
+    } catch (err) {
+      console.error("Failed to sync profile to backend:", err);
+      alert("Unable to save profile to backend right now.");
+      return;
+    }
+
     setUser({ username: fName, age: fAge, height: fHeight, stressTrigger: fTrigger, goals: fGoal });
+    sessionStorage.removeItem("onboardingAfterRegister");
+    setOnboardingRequired(false);
     setIsProfileOpen(false);
     setIsCustomTrigger(false);
     setIsCustomGoal(false);
+    router.replace("/");
   };
 
   const handleStartSession = () => {
@@ -165,7 +190,7 @@ export default function Home() {
   }
 
   // ONBOARDING
-  if (!username) {
+  if (onboardingRequired) {
     return (
       <div className="min-h-screen bg-[#0A0F2C] text-white flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-[#1E2A5E] rounded-[40px] p-10 shadow-2xl border border-white/5">

@@ -577,7 +577,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto lg:min-w-[320px]">
             <Link
-              href="/session"
+              href="/"
               className="inline-flex items-center justify-center rounded-xl border border-slate-500 bg-[#1e293b] text-slate-100 font-medium px-5 py-3.5 hover:bg-slate-700 transition"
             >
               Back to main page

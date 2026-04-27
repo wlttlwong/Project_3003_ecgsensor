@@ -20,6 +20,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
+      sessionStorage.removeItem("onboardingAfterRegister");
       router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to sign in.");
