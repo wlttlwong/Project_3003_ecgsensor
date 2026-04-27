@@ -37,6 +37,7 @@ const HeartRateMonitor: React.FC<MonitorControlsProps> = ({
   const [stressLevel, setStressLevel] = useState<string>("Normal");
   const [notes, setNotes] = useState<string>("");
   const [showBreathingPrompt, setShowBreathingPrompt] = useState(false);
+  const [criticalFor5s, setCriticalFor5s] = useState(false);
   const criticalHandledRef = useRef(false);
 
   const getSessionLogKey = useCallback(() => {
@@ -123,10 +124,20 @@ const HeartRateMonitor: React.FC<MonitorControlsProps> = ({
   useEffect(() => {
     if (stressLevel !== "Critical") {
       setShowBreathingPrompt(false);
+      setCriticalFor5s(false);
       criticalHandledRef.current = false;
       return;
     }
 
+    const timeoutId = window.setTimeout(() => {
+      setCriticalFor5s(true);
+    }, 5000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [stressLevel]);
+
+  useEffect(() => {
+    if (!criticalFor5s) return;
     if (criticalHandledRef.current) return;
     criticalHandledRef.current = true;
     alert("Stress level rising!");
@@ -134,7 +145,7 @@ const HeartRateMonitor: React.FC<MonitorControlsProps> = ({
     beep.play().catch((err) => console.error("Audio play failed:", err));
     setShowBreathingPrompt(true);
     void endSession();
-  }, [endSession, stressLevel]);
+  }, [criticalFor5s, endSession]);
 
   return (
     <div className="mx-auto max-w-4xl overflow-hidden rounded-xl bg-white shadow-lg">
