@@ -15,25 +15,25 @@ const LiveFeedback: React.FC<LiveFeedbackProps> = ({ avgHR, avgHRV }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [showBreathing, setShowBreathing] = useState(false);
   const [showStretching, setShowStretching] = useState(false);
-  const [highStressFor5s, setHighStressFor5s] = useState(false);
+  const [highStressFor3s, setHighStressFor3s] = useState(false);
 
   useEffect(() => {
     if (!isHighStress) {
-      setHighStressFor5s(false);
+      setHighStressFor3s(false);
       return;
     }
-    const id = window.setTimeout(() => setHighStressFor5s(true), 5000);
+    const id = window.setTimeout(() => setHighStressFor3s(true), 3000);
     return () => window.clearTimeout(id);
   }, [isHighStress]);
 
   useEffect(() => {
-    if (highStressFor5s) setShowAlert(true);
-  }, [highStressFor5s]);
+    if (highStressFor3s) setShowAlert(true);
+  }, [highStressFor3s]);
 
   return (
     <>
       {/* PROFESSIONAL OVERLAY MODAL */}
-      {showAlert && highStressFor5s && !showMenu && !showBreathing && !showStretching && (
+      {showAlert && highStressFor3s && !showMenu && !showBreathing && !showStretching && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#05081a]/80 backdrop-blur-md animate-in fade-in duration-500">
           
           <div className="relative bg-[#0A0F2C]/90 border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] rounded-2xl p-10 max-w-lg w-full text-center overflow-hidden">

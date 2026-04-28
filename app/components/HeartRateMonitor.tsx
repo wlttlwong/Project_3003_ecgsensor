@@ -42,7 +42,7 @@ const HeartRateMonitor: React.FC<MonitorControlsProps> = ({
   
   // Alert & Intervention States
   const [showBreathingPrompt, setShowBreathingPrompt] = useState(false);
-  const [stressDetectedFor5s, setStressDetectedFor5s] = useState(false);
+  const [stressDetectedFor3s, setStressDetectedFor3s] = useState(false);
   const alertHandledRef = useRef(false);
 
   const getSessionLogKey = useCallback(() => {
@@ -145,22 +145,22 @@ const HeartRateMonitor: React.FC<MonitorControlsProps> = ({
     // Trigger if stress is "High Stress" OR "Critical"
     if (stressLevel !== "High Stress" && stressLevel !== "Critical") {
       setShowBreathingPrompt(false);
-      setStressDetectedFor5s(false);
+      setStressDetectedFor3s(false);
       alertHandledRef.current = false;
       return;
     }
 
-    // Start 5s timer for biofeedback prompt
+    // Start 3s timer for biofeedback prompt
     const timeoutId = window.setTimeout(() => {
-      setStressDetectedFor5s(true);
-    }, 5000);
+      setStressDetectedFor3s(true);
+    }, 3000);
 
     return () => window.clearTimeout(timeoutId);
   }, [stressLevel]);
 
   // --- ALERT EXECUTION ---
   useEffect(() => {
-    if (!stressDetectedFor5s || alertHandledRef.current) return;
+    if (!stressDetectedFor3s || alertHandledRef.current) return;
     
     alertHandledRef.current = true;
     
@@ -171,8 +171,8 @@ const HeartRateMonitor: React.FC<MonitorControlsProps> = ({
     // Show visual breathing prompt
     setShowBreathingPrompt(true);
     
-    console.warn(`Biofeedback Triggered: ${stressLevel} detected for 5 seconds.`);
-  }, [stressDetectedFor5s, stressLevel]);
+    console.warn(`Biofeedback Triggered: ${stressLevel} detected for 3 seconds.`);
+  }, [stressDetectedFor3s, stressLevel]);
 
   return (
     <div className="mx-auto max-w-4xl overflow-hidden rounded-xl bg-white shadow-lg">
